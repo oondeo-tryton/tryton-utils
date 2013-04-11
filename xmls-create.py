@@ -18,10 +18,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
-
 import sys
 import os
 import optparse
+import logging
 
 
 def parse_arguments(arguments):
@@ -29,7 +29,7 @@ def parse_arguments(arguments):
     parser.add_option('', '--trytond-dir', dest='trytond_dir',
             help='set trytond directory')
     parser.add_option('', '--stdout', action='store_true',  dest='stdout',
-            help='set output to stdout')
+            help='set output to stdout', default=False)
     parser.add_option('', '--model', dest='model',
             help='Filter only this model')
     (option, arguments) = parser.parse_args(arguments)
@@ -38,14 +38,14 @@ def parse_arguments(arguments):
     arguments.pop(0)
 
     if option.trytond_dir:
-        DIR = os.path.abspath(os.path.normpath(os.path.join(__file__,
-             '..', option.trytond_dir)))
+        #directory = os.path.abspath(os.path.normpath(os.path.join(__file__,
+             #'..', option.trytond_dir)))
+        directory = os.path.abspath(option.trytond_dir)
     else:
-        DIR = os.path.abspath(os.path.normpath(os.path.join(__file__,
-            '..', '..', 'trytond')))
-
-    if os.path.isdir(DIR):
-        sys.path.insert(0, DIR)
+        directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
+                    '..', '..', '..')))
+    if os.path.isdir(directory):
+        sys.path.insert(0, directory)
 
     return option
 
@@ -54,11 +54,8 @@ options = parse_arguments(sys.argv)
 
 
 
-import unittest
-from decimal import Decimal
 import trytond.tests.test_tryton
-from trytond.tests.test_tryton import POOL, DB_NAME, USER, CONTEXT, test_view,\
-    test_depends
+from trytond.tests.test_tryton import DB_NAME, USER, CONTEXT
 from trytond.transaction import Transaction
 from trytond.pool import Pool
 
@@ -101,8 +98,7 @@ def generate_tree_view(module_name, model_name, description, inherit_type,
             <field name="model">%s</field>
             <field name="type">tree</field>%s
             <field name="name">%s_tree</field>
-        </record>
-        """ % (id, model_name, inherit_tag, id)
+        </record>""" % (id, model_name, inherit_tag, id)
     write_view_file(view_file, arch)
     return output
 
@@ -139,8 +135,7 @@ def generate_form_view(module_name, model_name, description, inherit_type,
             <field name="model">%s</field>
             <field name="type">form</field>%s
             <field name="name">%s_form</field>
-        </record>
-        """ % (id, model_name, inherit_tag, id)
+        </record>""" % (id, model_name, inherit_tag, id)
 
     write_view_file(view_file, arch)
     return output
@@ -155,59 +150,50 @@ def generate_action(model_name, description):
             <field name="search_value"></field>
             <!-- <field name="domain">[]</field> -->
             <!-- <field name="context">{}</field> -->
-        </record>
-        """ % (id, description, model_name)
+        </record>""" % (id, description, model_name)
     output += """
         <record model="ir.action.act_window.view" id="act_%s_view1">
             <field name="sequence" eval="10"/>
             <field name="view" ref="%s_tree_view"/>
             <field name="act_window" ref="act_%s"/>
-        </record>
-        """ % (id, id, id)
+        </record>""" % (id, id, id)
     output += """
         <record model="ir.action.act_window.view" id="act_%s_view2">
             <field name="sequence" eval="20"/>
             <field name="view" ref="%s_form_view"/>
             <field name="act_window" ref="act_%s"/>
-        </record>
-        """ % (id, id, id)
+        </record>""" % (id, id, id)
     return output
 
 def generate_users(module_name):
     output = """
         <record model="res.group" id="group_%s_admin">
             <field name="name">%s Administration</field>
-        </record>
-        """ % (module_name, module_name.capitalize())
+        </record>""" % (module_name, module_name.capitalize())
     output += """
         <record model="res.user-res.group" id="user_admin_group_%s_admin">
             <field name="user" ref="res.user_admin"/>
             <field name="group" ref="group_%s_admin"/>
-        </record>
-        """ % (module_name, module_name)
+        </record>""" % (module_name, module_name)
     output += """
         <record model="res.user-res.group" id="user_trigger_group_%s_admin">
             <field name="user" ref="res.user_trigger"/>
             <field name="group" ref="group_%s_admin"/>
-        </record>
-        """ % (module_name, module_name)
+        </record>""" % (module_name, module_name)
     output += """
         <record model="res.group" id="group_%s">
             <field name="name">%s</field>
-        </record>
-        """ % (module_name, module_name.capitalize())
+        </record>""" % (module_name, module_name.capitalize())
     output += """
         <record model="res.user-res.group" id="user_admin_group_%s">
             <field name="user" ref="res.user_admin"/>
             <field name="group" ref="group_%s"/>
-        </record>
-        """ % (module_name, module_name)
+        </record>""" % (module_name, module_name)
     output += """
         <record model="res.user-res.group" id="user_trigger_group_%s">
             <field name="user" ref="res.user_trigger"/>
             <field name="group" ref="group_%s"/>
-        </record>
-        """ % (module_name, module_name)
+        </record>""" % (module_name, module_name)
     return output
 
 
@@ -220,8 +206,7 @@ def generate_access(module_name, model_name):
             <field name="perm_write" eval="False"/>
             <field name="perm_create" eval="False"/>
             <field name="perm_delete" eval="False"/>
-        </record>
-        """ % (id, model_name)
+        </record>""" % (id, model_name)
     output += """
         <record model="ir.model.access" id="access_%s_admin">
             <field name="model" search="[('model', '=', '%s')]"/>
@@ -230,8 +215,7 @@ def generate_access(module_name, model_name):
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
             <field name="perm_delete" eval="True"/>
-        </record>
-        """ % (id, model_name, module_name)
+        </record>""" % (id, model_name, module_name)
     return output
 
 
@@ -270,7 +254,7 @@ def create_xml(filename, module_name, model_names):
             output += generate_action(model.model, model.name)
             output += generate_access(module_name, model.model)
             menus_output += generate_menus(module_name, model)
-    output += '        \n'
+    output += '\n'
     if menus_output:
         output +=  '        <!-- Menus -->\n'
         output += ('        <menuitem id="menu_%s" name="%s" sequence="1" />\n'
@@ -280,11 +264,6 @@ def create_xml(filename, module_name, model_names):
     output += '</tryton>'
     return output
 
-    #f = open(filename, 'a')
-    #try:
-    #    f.write(output)
-    #finally:
-    #    f.close()
 
 
 def get_python_files(module_name):
@@ -304,14 +283,14 @@ def get_python_files(module_name):
 
 
 if __name__ == '__main__':
-    #unittest.TextTestRunner(verbosity=2).run(suite())
     if len(sys.argv) < 2:
         print '%s module' % sys.argv[0]
         sys.exit(1)
     module_name = sys.argv[1]
+    if module_name == '.':
+        module_name = os.path.basename(os.getcwd())
     trytond.tests.test_tryton.install_module(module_name)
     files = get_python_files(module_name)
-    output = ""
     for filename in files:
         models = files[filename]
         if options.model:
@@ -319,15 +298,13 @@ if __name__ == '__main__':
                 models = [options.model]
             else:
                 models = []
-        output += create_xml(filename + '.xml', module_name, models)
-
-
-    if options.stdout:
-        print output
-    else:
-        f = open(filename, 'w')
-        try:
-            f.write(output)
-        finally:
-            f.close()
-
+        output = create_xml(filename + '.xml', module_name, models)
+        if options.stdout:
+            logging.error(output)
+        else:
+            logging.error('\nWriting to %s.xml...\n' % filename)
+            f = open(filename + '.xml', 'a')
+            try:
+                f.write(output)
+            finally:
+                f.close()
