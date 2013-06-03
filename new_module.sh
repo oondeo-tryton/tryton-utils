@@ -1,6 +1,5 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-
 ##############################################################################
 # Copyright (C) 2013 NaN·tic
 #
@@ -18,12 +17,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
+MODULE=$1
 
-if [ -d "tryton" ]; then
-    DIR="tryton"
-else
-    echo "No tryton directory found."
-    exit 1
-fi
+hg clone ssh://hg@bitbucket.org/nantic/nan_module_skel  modules/$1
+rm -rf modules/$1/.hg
+pushd modules/$1
+hg init
+sed -i -e "s/<module>/$1/g" *
+popd
 
-python  ./$DIR/bin/tryton $*
+
+
+
