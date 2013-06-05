@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 ##############################################################################
@@ -38,21 +38,18 @@ def parse_arguments(arguments):
     arguments.pop(0)
 
     if option.trytond_dir:
-        #directory = os.path.abspath(os.path.normpath(os.path.join(__file__,
-             #'..', option.trytond_dir)))
         directory = os.path.abspath(option.trytond_dir)
     else:
         directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
-                    '..', '..', '..')))
+                    'trytond')))
+
     if os.path.isdir(directory):
         sys.path.insert(0, directory)
 
     return option
 
+
 options = parse_arguments(sys.argv)
-
-
-
 
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import DB_NAME, USER, CONTEXT
@@ -65,11 +62,15 @@ def write_view_file(filename, view):
         print view
         return
 
-    f = open('view/'+filename, 'w')
+    if not os.path.exists('view'):
+        os.mkdir('view')
+
+    f = open(os.path.join('view', filename), 'w')
     try:
         f.write(view)
     finally:
         f.close()
+
 
 def generate_tree_view(module_name, model_name, description, inherit_type,
         inherit, fields):
@@ -77,7 +78,7 @@ def generate_tree_view(module_name, model_name, description, inherit_type,
     arch = '<?xml version="1.0"?>\n'
     arch += '<!--The COPYRIGHT file at the top level of this repository \
             \ncontains the full copyright notices and license terms. -->'
-    if inherit_type and inherit_type=='extends':
+    if inherit_type and inherit_type == 'extends':
         inherit_tag = '\
             <!-- TODO fill "ref" attribute with inherited view of model %s -->\
             <field name="inherit_id" ref=""/>' % inherit
@@ -85,14 +86,14 @@ def generate_tree_view(module_name, model_name, description, inherit_type,
     else:
         arch = '<tree string="%s">' % description
         if inherit:
-            arch += '\n<!-- TODO add %s model(s) fields -->'% inherit
+            arch += '\n<!-- TODO add %s model(s) fields -->' % inherit
 
     for fieldname in fields:
         arch += '\n\t <field name="%s"/>' % fieldname
     arch += '\n</tree>'
 
     id = model_name.replace('.', '_')
-    view_file = "%s_tree.xml"%id
+    view_file = "%s_tree.xml" % id
     output = """
         <record model="ir.ui.view" id="%s_tree_view">
             <field name="model">%s</field>
@@ -129,7 +130,7 @@ def generate_form_view(module_name, model_name, description, inherit_type,
     arch += '\n</form>'
 
     id = model_name.replace('.', '_')
-    view_file = "%s_form.xml"%id
+    view_file = "%s_form.xml" % id
     output = """
         <record model="ir.ui.view" id="%s_form_view">
             <field name="model">%s</field>
@@ -164,6 +165,7 @@ def generate_action(model_name, description):
             <field name="act_window" ref="act_%s"/>
         </record>""" % (id, id, id)
     return output
+
 
 def generate_users(module_name):
     output = """
@@ -221,8 +223,8 @@ def generate_access(module_name, model_name):
 
 def generate_menus(module_name, model):
     id = model.model.replace('.', '_')
-    output = ('        <menuitem action="act_%s" id="menu_%s" parent="menu_%s" '
-        'sequence="1" name="%s"/>\n' % (id, id, module_name, model.name))
+    output = ('        <menuitem action="act_%s" id="menu_%s" parent="menu_%s"'
+        ' sequence="1" name="%s"/>\n' % (id, id, module_name, model.name))
     return output
 
 
@@ -256,14 +258,13 @@ def create_xml(filename, module_name, model_names):
             menus_output += generate_menus(module_name, model)
     output += '\n'
     if menus_output:
-        output +=  '        <!-- Menus -->\n'
+        output += '        <!-- Menus -->\n'
         output += ('        <menuitem id="menu_%s" name="%s" sequence="1" />\n'
             % (module_name, module_name.capitalize()))
         output += menus_output
     output += '    </data>\n'
     output += '</tryton>'
     return output
-
 
 
 def get_python_files(module_name):
@@ -286,9 +287,11 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         print '%s module' % sys.argv[0]
         sys.exit(1)
+
     module_name = sys.argv[1]
-    if module_name == '.':
-        module_name = os.path.basename(os.getcwd())
+    os.chdir(os.path.join('./modules/', module_name, 'test'))
+    logging.error("module_name:" + module_name)
+
     trytond.tests.test_tryton.install_module(module_name)
     files = get_python_files(module_name)
     for filename in files:
