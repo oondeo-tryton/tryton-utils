@@ -1,6 +1,5 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-
 ##############################################################################
 # Copyright (C) 2013 NaN·tic
 #
@@ -18,17 +17,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
-
 echo "server.py"
-diff ../server.py server.py
-if [[ -f ../server.py ]]; then
-    mv ../server.py /tmp
-fi
 ln -s utils/server.py ..
 
 echo "client.sh"
-diff ../client.sh client.sh
-if [[ -f ../client.sh ]]; then
-    mv ../client.sh /tmp
-fi
 ln -s utils/client.sh ..
+
+echo "new-module.sh"
+ln -s utils/new-module.sh ..
