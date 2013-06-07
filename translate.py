@@ -25,6 +25,7 @@ import polib
 from optparse import OptionParser
 import uuid
 from common import Settings, check_output
+import re
 
 
 class ApertiumTranslator:
@@ -92,7 +93,7 @@ def make_translation_memory(lang):
     po.metadata = {
             'Project-Id-Version': '1.0',
             'Report-Msgid-Bugs-To': 'angel@nan-tic.com',
-            'Language-Team': 'English <yourteam@example.com>',
+            'Language-Team': 'English <angel@nan-tic.com.com>',
             'MIME-Version': '1.0',
             'Content-Type': 'text/plain; charset=utf-8',
             'Content-Transfer-Encoding': '8bit',
@@ -104,7 +105,20 @@ def make_translation_memory(lang):
         entries += pot.fuzzy_entries()
         entries += pot.obsolete_entries()
 
+    terms = []
     for e in entries:
+        if e.msgid == e.msgstr:
+            continue
+        keys = re.findall('\%\(\w+\)s',e.msgid)
+        for key in keys:
+            po.append(polib.POEntry(
+                msgid=key,
+                msgstr=key))
+
+        term = (e.msgid, e.msgstr)
+        if term not in terms:
+            terms.append(term)
+
         if e.flags:
             e.flags.remove('fuzzy')
         po.append(e)
