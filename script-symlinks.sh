@@ -25,3 +25,6 @@ ln -s utils/client.sh ..
 
 echo "new-module.sh"
 ln -s utils/new-module.sh ..
+
+echo "update.sh"
+ln -s utils/update.sh ..
