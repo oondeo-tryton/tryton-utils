@@ -1,3 +1,5 @@
-#!/bin/sh
+#!/bin/bash
 
-./buildout/build/bin/develop update
+pushd buildout
+./build/bin/develop update
+popd
