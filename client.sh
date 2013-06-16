@@ -26,4 +26,4 @@ else
     exit 1
 fi
 
-python  ./$DIR/bin/tryton $*
+python  ./$DIR/bin/tryton -d $*

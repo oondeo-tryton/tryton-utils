@@ -289,7 +289,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     module_name = sys.argv[1]
-    os.chdir(os.path.join('./modules/', module_name, 'test'))
+    os.chdir(os.path.join('./modules/', module_name, 'tests'))
     logging.error("module_name:" + module_name)
 
     trytond.tests.test_tryton.install_module(module_name)

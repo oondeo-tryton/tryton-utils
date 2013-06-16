@@ -28,3 +28,6 @@ ln -s utils/new-module.sh ..
 
 echo "update.sh"
 ln -s utils/update.sh ..
+
+echo "create-xmls.py"
+ln -s utils/create-xmls.py ..
