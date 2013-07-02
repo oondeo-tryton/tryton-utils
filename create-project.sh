@@ -18,6 +18,7 @@ pushd $project_name
 touch local.cfg
 echo "[buildout]" >> local.cfg
 echo "auto-checkout += *" >> local.cfg
+echo "" >> local.cfg
 echo "[sources]" >> local.cfg
 
 hg clone ssh://hg@bitbucket.org/nantic/tryton-buildout buildout
