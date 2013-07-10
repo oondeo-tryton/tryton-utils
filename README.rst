@@ -21,9 +21,7 @@ To use specific dictionary, you need to generate tmx file, use **-g** option
 to do it.
 
  ::
-
     ./utils/translate.py -g -l ca_ES -m <module-name>
-
 This command, first generate en-ca.tmx file and then translate all terms of
 <module-name>.
 
