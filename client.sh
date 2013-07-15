@@ -18,12 +18,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
+pushd `dirname $0` > /dev/null
+DIR=`pwd`
+popd > /dev/null
 
-if [ -d "tryton" ]; then
-    DIR="tryton"
-else
+DIR="$DIR/tryton"
+echo "DIR: $DIR"
+if [ ! -d "$DIR" ]; then
     echo "No tryton directory found."
     exit 1
 fi
 
-python  ./$DIR/bin/tryton -d $*
+python  $DIR/bin/tryton -d $*
