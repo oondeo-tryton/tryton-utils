@@ -32,7 +32,8 @@ if os.path.isdir(directory):
 
 
 def parse_arguments(arguments):
-    parser = optparse.OptionParser(usage='xmls-create.py module [options]')
+    parser = optparse.OptionParser(usage=
+        'doc-update-modules.py [options]')
     parser.add_option('-d', '--database', dest='database',
             help='Database to get modules installed')
     parser.add_option('-c', '--config-file', dest='config',

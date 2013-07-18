@@ -58,3 +58,35 @@ Creates a new tryton project based on NaN·tic's buildout repository::
     ./create-project.sh <project_name> <version>
 
 Version is currently required although it is not used yet.
+
+
+----------------
+doc-bootstrap.sh
+----------------
+First you need to install dependencies,  download repositories
+
+* hg clone https://bitbucket.org/nantic/sphinxcontrib-inheritance
+* hg clone https://bitbucket.org/nantic/trydoc" 
+
+and as root:
+
+cd sphinxcontrib-inheritance  && python setup.py install
+cd trydoc &&  python setup.py install
+
+and as user:
+
+./utils/doc-bootstrap.sh
+
+---------------------
+doc-update-modules.py
+---------------------
+
+To update modules used in documentation.
+
+./utils/doc-update-modules.py -d <database> -c <config-file>
+
+Rembember to execute doc-bootstrap.sh to generate documentation again.
+
+
+
+
