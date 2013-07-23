@@ -275,11 +275,13 @@ def get_python_files(module_name):
         models = Model.search([('module', '=', module_name)])
         for model in models:
             Class = pool.get(model.model)
-            name = repr(Class)
-            # Expected output <class 'trytond.modules.farm.animal.farm.animal'>
-            filename = name.split('.')[3]
-            model = '.'.join(name.split('.')[4:]).replace("'>", '')
-            files.setdefault(filename, []).append(model)
+            module_path = Class.__module__
+            # Expected output
+            # 'trytond.modules.<module_name>[.<subdir>].<model.model>
+            filename = module_path.split('.')[-1]
+            if not filename.startswith(module_name):
+                filename = module_name + '_' + filename
+            files.setdefault(filename, []).append(Class.__name__)
     return files
 
 
@@ -301,6 +303,8 @@ if __name__ == '__main__':
                 models = [options.model]
             else:
                 models = []
+        if not models:
+            continue
         output = create_xml(filename + '.xml', module_name, models)
         if options.stdout:
             logging.error(output)
