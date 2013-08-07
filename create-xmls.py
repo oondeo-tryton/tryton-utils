@@ -18,6 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
+import warnings
 import sys
 import os
 import optparse
@@ -25,13 +26,15 @@ import logging
 
 
 def parse_arguments(arguments):
-    parser = optparse.OptionParser(usage='xmls-create.py module [options]')
+    parser = optparse.OptionParser(usage='xmls-create.py [options] module')
     parser.add_option('', '--trytond-dir', dest='trytond_dir',
             help='set trytond directory')
-    parser.add_option('', '--stdout', action='store_true',  dest='stdout',
+    parser.add_option('', '--stdout', action='store_true', dest='stdout',
             help='set output to stdout', default=False)
     parser.add_option('', '--model', dest='model',
             help='Filter only this model')
+    parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
+            help='Print more verbose log messages', default=False)
     (option, arguments) = parser.parse_args(arguments)
 
     # Remove first argument because it's application name
@@ -43,13 +46,24 @@ def parse_arguments(arguments):
         directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                     'trytond')))
 
+    if option.verbose:
+        logger.setLevel(logging.DEBUG)
+        logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
+    else:
+        logger.setLevel(logging.INFO)
+        logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
+
     if os.path.isdir(directory):
         sys.path.insert(0, directory)
 
-    return option
+    if not arguments:
+        parser.error("module is required")
+    module_name = arguments.pop(0)
 
+    return option, module_name
 
-options = parse_arguments(sys.argv)
+logger = logging.getLogger('create_xmls')
+options, module_name = parse_arguments(sys.argv)
 
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import DB_NAME, USER, CONTEXT
@@ -89,7 +103,7 @@ def generate_tree_view(module_name, model_name, description, inherit_type,
             arch += '\n<!-- TODO add %s model(s) fields -->' % inherit
 
     for fieldname in fields:
-        arch += '\n\t <field name="%s"/>' % fieldname
+        arch += '\n    <field name="%s"/>' % fieldname
     arch += '\n</tree>'
 
     id = model_name.replace('.', '_')
@@ -125,8 +139,8 @@ def generate_form_view(module_name, model_name, description, inherit_type,
                 % inherit)
 
     for fieldname in fields:
-        arch += '\n\t<label name="%s"/>' % fieldname
-        arch += '\n\t<field name="%s"/>' % fieldname
+        arch += '\n    <label name="%s"/>' % fieldname
+        arch += '\n    <field name="%s"/>' % fieldname
     arch += '\n</form>'
 
     id = model_name.replace('.', '_')
@@ -286,16 +300,14 @@ def get_python_files(module_name):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print '%s module' % sys.argv[0]
-        sys.exit(1)
+    warnings.filterwarnings(action='ignore', category=DeprecationWarning)
 
-    module_name = sys.argv[1]
+    logger.info("Generating XMLs for module '%s'" % module_name)
     os.chdir(os.path.join('./modules/', module_name, 'tests'))
-    logging.error("module_name:" + module_name)
 
     trytond.tests.test_tryton.install_module(module_name)
     files = get_python_files(module_name)
+    logger.debug("Python files: %s" % files)
     for filename in files:
         models = files[filename]
         if options.model:
@@ -307,9 +319,9 @@ if __name__ == '__main__':
             continue
         output = create_xml(filename + '.xml', module_name, models)
         if options.stdout:
-            logging.error(output)
+            print output
         else:
-            logging.error('\nWriting to %s.xml...\n' % filename)
+            logger.info('\nWriting to %s.xml...\n' % filename)
             f = open(filename + '.xml', 'a')
             try:
                 f.write(output)
