@@ -319,6 +319,16 @@ def create_warehouse(name, code=None, address=None,
     return warehouse
 
 
+def remove_warehouse_and_locations(warehouse):
+    Location = Model.get('stock.location')
+
+    warehouse.type = 'storage'
+    warehouse.save()
+
+    for warehouse_loc in Location.find([('parent', 'child_of', warehouse.id)]):
+        Location.delete(warehouse_loc)
+
+
 if __name__ == "__main__":
     settings = parse_arguments(sys.argv)
 
