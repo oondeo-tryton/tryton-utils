@@ -23,7 +23,7 @@ hg clone ssh://hg@bitbucket.org/nantic/nan_module_skel  modules/$1
 rm -rf modules/$1/.hg
 pushd modules/$1
 hg init
-sed -i -e "s/<module>/$1/g" *
+find . -type f -exec sed -i "s/<module>/$1/g" {} \;
 popd
 
 
