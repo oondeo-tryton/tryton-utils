@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     settings = parse_arguments(sys.argv[1:])
 
-    config.set_trytond(database_type='postgres',
+    config.set_trytond(database_type='postgresql',
         database_name=settings.database)
 
     Module = Model.get('ir.module.module')
