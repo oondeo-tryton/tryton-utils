@@ -40,6 +40,7 @@ class ApertiumTranslator:
         return translation
 
     def translate_po(self, filename, entries='missing'):
+        print filename
         assert entries in ('missing', 'all'), 'entries parameter must be '\
                 '"missing" or "all"'
 

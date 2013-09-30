@@ -34,3 +34,6 @@ ln -s utils/create-xmls.py ..
 
 echo "buildout.sh"
 ln -s utils/buildout.sh ..
+
+echo "modules"
+ln -s trytond/trytond/modules/ ..
