@@ -89,9 +89,11 @@ def write_view_file(filename, view):
 def generate_tree_view(module_name, model_name, description, inherit_type,
         inherit, fields):
     inherit_tag = ""
-    arch = '<?xml version="1.0"?>\n'
-    arch += '<!--The COPYRIGHT file at the top level of this repository \
-            \ncontains the full copyright notices and license terms. -->'
+    arch = '''\
+<?xml version="1.0"?>
+<!-- The COPYRIGHT file at the top level of this repository contains the full
+     copyright notices and license terms. -->'''
+
     if inherit_type and inherit_type == 'extends':
         inherit_tag = '\
             <!-- TODO fill "ref" attribute with inherited view of model %s -->\
@@ -107,12 +109,12 @@ def generate_tree_view(module_name, model_name, description, inherit_type,
     arch += '\n</tree>'
 
     id = model_name.replace('.', '_')
-    view_file = "%s_tree.xml" % id
+    view_file = "%s_list.xml" % id
     output = """
-        <record model="ir.ui.view" id="%s_tree_view">
+        <record model="ir.ui.view" id="%s_view_list">
             <field name="model">%s</field>
             <field name="type">tree</field>%s
-            <field name="name">%s_tree</field>
+            <field name="name">%s_list</field>
         </record>""" % (id, model_name, inherit_tag, id)
     write_view_file(view_file, arch)
     return output
@@ -122,9 +124,10 @@ def generate_form_view(module_name, model_name, description, inherit_type,
         inherit, fields):
 
     inherit_tag = ''
-    arch = '<?xml version="1.0"?>\n'
-    arch += '<!--The COPYRIGHT file at the top level of this repository \
-            \ncontains the full copyright notices and license terms. -->'
+    arch = '''\
+<?xml version="1.0"?>
+<!-- The COPYRIGHT file at the top level of this repository contains the full
+     copyright notices and license terms. -->'''
 
     if inherit_type and inherit_type == 'extends':
         inherit_tag = '\
@@ -146,7 +149,7 @@ def generate_form_view(module_name, model_name, description, inherit_type,
     id = model_name.replace('.', '_')
     view_file = "%s_form.xml" % id
     output = """
-        <record model="ir.ui.view" id="%s_form_view">
+        <record model="ir.ui.view" id="%s_view_form">
             <field name="model">%s</field>
             <field name="type">form</field>%s
             <field name="name">%s_form</field>
@@ -169,13 +172,13 @@ def generate_action(model_name, description):
     output += """
         <record model="ir.action.act_window.view" id="act_%s_view1">
             <field name="sequence" eval="10"/>
-            <field name="view" ref="%s_tree_view"/>
+            <field name="view" ref="%s_view_list"/>
             <field name="act_window" ref="act_%s"/>
         </record>""" % (id, id, id)
     output += """
         <record model="ir.action.act_window.view" id="act_%s_view2">
             <field name="sequence" eval="20"/>
-            <field name="view" ref="%s_form_view"/>
+            <field name="view" ref="%s_view_form"/>
             <field name="act_window" ref="act_%s"/>
         </record>""" % (id, id, id)
     return output
