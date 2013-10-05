@@ -26,14 +26,8 @@ ln -s utils/client.sh ..
 echo "new-module.sh"
 ln -s utils/new-module.sh ..
 
-echo "update.sh"
-ln -s utils/update.sh ..
-
 echo "create-xmls.py"
 ln -s utils/create-xmls.py ..
-
-echo "buildout.sh"
-ln -s utils/buildout.sh ..
 
 echo "modules"
 ln -s trytond/trytond/modules/ ..
