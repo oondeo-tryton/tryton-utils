@@ -88,25 +88,33 @@ def write_view_file(filename, view):
 
 def generate_tree_view(module_name, model_name, description, inherit_type,
         inherit, fields):
-    inherit_tag = ""
+    inherit_tag = ''
     arch = '''\
 <?xml version="1.0"?>
 <!-- The COPYRIGHT file at the top level of this repository contains the full
      copyright notices and license terms. -->'''
 
+    tabs = "    "
     if inherit_type and inherit_type == 'extends':
-        inherit_tag = '\
-            <!-- TODO fill "ref" attribute with inherited view of model %s -->\
-            <field name="inherit_id" ref=""/>' % inherit
-        arch += '<tree position="inside">'
+        inherit_tag = '\n\
+        <!-- TODO fill "ref" attribute with inherited view of model %s -->\n\
+            <field name="inherit" ref=""/>' % inherit
+        arch += '\n<data>'
+        arch += '\n<!-- TODO fill "xpath expr" -->\
+                \n    <xpath expr="" position="before">'
+        tabs += "    "
     else:
-        arch += '<tree string="%s">' % description
+        arch += '\n<tree string="%s">' % description
         if inherit:
             arch += '\n<!-- TODO add %s model(s) fields -->' % inherit
 
     for fieldname in fields:
-        arch += '\n    <field name="%s"/>' % fieldname
-    arch += '\n</tree>'
+        arch += '\n%s<field name="%s"/>' % (tabs, fieldname)
+    if inherit_type and inherit_type == 'extends':
+        arch += '\n    </xpath>'
+        arch += '\n</data>'
+    else:
+        arch += '\n</tree>'
 
     id = model_name.replace('.', '_')
     view_file = "%s_list.xml" % id
@@ -129,11 +137,15 @@ def generate_form_view(module_name, model_name, description, inherit_type,
 <!-- The COPYRIGHT file at the top level of this repository contains the full
      copyright notices and license terms. -->'''
 
+    tabs = "    "
     if inherit_type and inherit_type == 'extends':
-        inherit_tag = '\
-            <!-- TODO fill "ref" attribute with inherited view of model %s -->\
+        inherit_tag = '\n\
+        <!-- TODO fill "ref" attribute with inherited view of model %s -->\n\
             <field name="inherit" ref=""/>' % inherit
-        arch += '\n<form position="inside">'
+        arch += '\n<data>'
+        arch += '\n<!-- TODO fill "xpath expr" -->\
+                \n    <xpath expr="" position="before">'
+        tabs += "    "
     else:
         arch += '\n<form string="%s">' % description
         if inherit:
@@ -142,9 +154,13 @@ def generate_form_view(module_name, model_name, description, inherit_type,
                 % inherit)
 
     for fieldname in fields:
-        arch += '\n    <label name="%s"/>' % fieldname
-        arch += '\n    <field name="%s"/>' % fieldname
-    arch += '\n</form>'
+        arch += '\n%s<label name="%s"/>' % (tabs, fieldname)
+        arch += '\n%s<field name="%s"/>' % (tabs, fieldname)
+    if inherit_type and inherit_type == 'extends':
+        arch += '\n    </xpath>'
+        arch += '\n</data>'
+    else:
+        arch += '\n</form>'
 
     id = model_name.replace('.', '_')
     view_file = "%s_form.xml" % id
@@ -252,6 +268,7 @@ def create_xml(filename, module_name, model_names):
     with Transaction().start(DB_NAME, USER, context=CONTEXT):
         pool = Pool()
         Model = pool.get('ir.model')
+        Fields = pool.get('ir.model.field')
         models = Model.search([('module', '=', module_name)])
         for model in models:
             if not model.model in model_names:
@@ -270,6 +287,24 @@ def create_xml(filename, module_name, model_names):
             output += generate_action(model.model, model.name)
             output += generate_access(module_name, model.model)
             menus_output += generate_menus(module_name, model)
+        fields = Fields.search([
+                ('module', '=', module_name),
+                ('model', 'not in', models),
+            ])
+        inherited_models = {}
+        for field in fields:
+            Class = pool.get(field.model.model)
+            model = field.model
+            if model in inherited_models:
+                inherited_models[model].append(field.name)
+            else:
+                inherited_models[model] = [field.name]
+        for model, fields in inherited_models.iteritems():
+            output += generate_form_view(module_name, model.model,
+                model.name, 'extends', model.model, fields)
+            output += generate_tree_view(module_name, model.model,
+                model.name, 'extends', model.model, fields)
+
     output += '\n'
     if menus_output:
         output += '        <!-- Menus -->\n'
