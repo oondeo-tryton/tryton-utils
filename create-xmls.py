@@ -100,7 +100,7 @@ def generate_tree_view(module_name, model_name, description, inherit_type,
             <field name="inherit_id" ref=""/>' % inherit
         arch += '<tree position="inside">'
     else:
-        arch = '<tree string="%s">' % description
+        arch += '<tree string="%s">' % description
         if inherit:
             arch += '\n<!-- TODO add %s model(s) fields -->' % inherit
 
@@ -165,9 +165,6 @@ def generate_action(model_name, description):
         <record model="ir.action.act_window" id="act_%s">
             <field name="name">%s</field>
             <field name="res_model">%s</field>
-            <field name="search_value"></field>
-            <!-- <field name="domain">[]</field> -->
-            <!-- <field name="context">{}</field> -->
         </record>""" % (id, description, model_name)
     output += """
         <record model="ir.action.act_window.view" id="act_%s_view1">
