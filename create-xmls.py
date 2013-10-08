@@ -310,6 +310,19 @@ def create_xml(filename, module_name, model_names):
         output += '        <!-- Menus -->\n'
         output += ('        <menuitem id="menu_%s" name="%s" sequence="1" />\n'
             % (module_name, module_name.capitalize()))
+        output += '''
+          <record model="ir.ui.menu-res.group" id="menu_%s_group_%s">
+            <field name="menu" ref="menu_%s"/>
+            <field name="group" ref="group_%s"/>
+          </record>
+          ''' % (module_name, module_name, module_name, module_name)
+        output += '''
+          <record model="ir.ui.menu-res.group" id="menu_%s_group_%s_admin">
+            <field name="menu" ref="menu_%s"/>
+            <field name="group" ref="group_%s"/>
+          </record>
+          ''' % (module_name, module_name, module_name, module_name)
+        output += '\n'
         output += menus_output
     output += '    </data>\n'
     output += '</tryton>'
