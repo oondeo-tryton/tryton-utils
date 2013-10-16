@@ -19,6 +19,11 @@
 
 MODULE=$1
 
+if [[ -z "$1" ]]; then
+    echo "Syntax: $0 module_name"
+    exit 1
+fi
+
 hg clone ssh://hg@bitbucket.org/nantic/nan_module_skel  modules/$1
 rm -rf modules/$1/.hg
 pushd modules/$1
