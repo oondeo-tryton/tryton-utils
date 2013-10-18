@@ -270,6 +270,7 @@ def create_xml(filename, module_name, model_names):
         Model = pool.get('ir.model')
         Fields = pool.get('ir.model.field')
         models = Model.search([('module', '=', module_name)])
+        company_models = []
         for model in models:
             if not model.model in model_names:
                 continue
@@ -287,6 +288,8 @@ def create_xml(filename, module_name, model_names):
             output += generate_action(model.model, model.name)
             output += generate_access(module_name, model.model)
             menus_output += generate_menus(module_name, model)
+            if 'company' in fields:
+                company_models.append(model.model)
         fields = Fields.search([
                 ('module', '=', module_name),
                 ('model', 'not in', models),
@@ -304,6 +307,23 @@ def create_xml(filename, module_name, model_names):
                 model.name, 'extends', model.model, fields)
             output += generate_tree_view(module_name, model.model,
                 model.name, 'extends', model.model, fields)
+    for model in company_models:
+        output += '\n'
+        output += '''
+          <record model="ir.rule.group" id="rule_group_%s">
+            <field name="model" search="[('model', '=', '%s')]"/>
+            <field name="global_p" eval="True"/>
+          </record>
+          ''' % (model.replace('.', '_'), model)
+        output += '''
+          <record model="ir.rule" id="rule_%s1">
+            <field name="domain">
+                [('company', '=', user.company.id if user.company else None)]
+            </field>
+            <field name="rule_group" ref="rule_group_%s"/>
+          </record>
+          ''' % (model.replace('.', '_'), model.replace('.', '_'))
+        output += '\n'
 
     output += '\n'
     if menus_output:
