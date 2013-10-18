@@ -90,11 +90,9 @@ if __name__ == "__main__":
         translation_export.form.module = module
         translation_export.execute('export')
         path = path + '/%s.po' % language.code
-        if module.name in ('ir', 'webdav', 'res'):
-            continue
         f = open(path, 'w')
         try:
-            f.write(translation_export.form.file)
-        except:
+            f.write(str(translation_export.form.file))
+        finally:
             f.close()
         print 'Module \'%s\' exported successfully.' % module.name
