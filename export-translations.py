@@ -37,49 +37,58 @@ if os.path.isdir(directory):
 def parse_arguments(arguments):
     usage = 'export_translation.py  -d <database> -m <module> -l <lang>'
     parser = OptionParser(usage=usage)
+    parser.add_option('-u', '--url', dest='url')
     parser.add_option('-d', '--database', dest='database')
     parser.add_option('-m', '--module', dest='module')
     parser.add_option('-l', '--lang', dest='lang')
+    parser.add_option('-p', '--path', dest='path')
 
     (option, arguments) = parser.parse_args(arguments)
 
     settings = Settings()
 
-    if option.database and option.module and option.lang:
+    if (option.database or option.url) and option.module and option.lang:
         settings.database = option.database
         settings.module = option.module
         settings.lang = option.lang
+        settings.url = option.url
+        settings.path = option.path
     else:
         print usage
-
     return settings
 
 if __name__ == "__main__":
 
     settings = parse_arguments(sys.argv[1:])
 
-    config.set_trytond(database_type='postgresql',
-        database_name=settings.database)
+    if settings.database:
+        config.set_trytond(database_type='postgresql',
+            database_name=settings.database)
+    else:
+        config.set_xmlrpc(settings.url)
 
     Module = Model.get('ir.module.module')
     if settings.module == 'all':
         modules = Module.find([('state', '=', 'installed')])
     else:
-        modules = Module.find([('state', '=', 'installed'),
-                ('name', '=', settings.module)])
+        modules = Module.find([
+                ('state', '=', 'installed'),
+                ('name', '=', settings.module),
+                ])
 
-    print modules
     Lang = Model.get('ir.lang')
     language, = Lang.find([('code', '=', settings.lang)])
 
     for module in modules:
+        path = settings.path if settings.path else ''
+        path = os.path.join(path, dest_path % module.name)
+        if not os.path.exists(path):
+            print 'Path \'%s\' not found.' % path
+            continue
         translation_export = Wizard('ir.translation.export')
         translation_export.form.language = language
         translation_export.form.module = module
         translation_export.execute('export')
-        path = dest_path % module.name
-        if not os.path.exists(path):
-            continue
         path = path + '/%s.po' % language.code
         if module.name in ('ir', 'webdav', 'res'):
             continue
@@ -88,3 +97,4 @@ if __name__ == "__main__":
             f.write(translation_export.form.file)
         except:
             f.close()
+        print 'Module \'%s\' exported successfully.' % module.name
