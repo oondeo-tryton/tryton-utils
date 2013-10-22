@@ -264,7 +264,8 @@ def create_xml(filename, module_name, model_names):
     output += '<tryton>\n'
     output += '    <data>\n'
     menus_output = ''
-    output += generate_users(module_name)
+    if len(model_names) > 0:
+        output += generate_users(module_name)
     with Transaction().start(DB_NAME, USER, context=CONTEXT):
         pool = Pool()
         Model = pool.get('ir.model')
@@ -376,6 +377,8 @@ if __name__ == '__main__':
     trytond.tests.test_tryton.install_module(module_name)
     files = get_python_files(module_name)
     logger.debug("Python files: %s" % files)
+    if len(files) == 0:
+        files = {module_name: []}
     for filename in files:
         models = files[filename]
         if options.model:
@@ -383,8 +386,6 @@ if __name__ == '__main__':
                 models = [options.model]
             else:
                 models = []
-        if not models:
-            continue
         output = create_xml(filename + '.xml', module_name, models)
         if options.stdout:
             print output
