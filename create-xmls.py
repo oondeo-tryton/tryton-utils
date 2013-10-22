@@ -391,7 +391,7 @@ if __name__ == '__main__':
             print output
         else:
             logger.info('\nWriting to %s.xml...\n' % filename)
-            f = open(filename + '.xml', 'a')
+            f = open(filename + '.xml', 'w')
             try:
                 f.write(output)
             finally:
