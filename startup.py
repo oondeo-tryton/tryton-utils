@@ -1,18 +1,22 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
-import sys
-import os
+import argparse
 import datetime
+import logging
+import os
+import sys
 from dateutil.relativedelta import relativedelta
-from optparse import OptionParser
-
-from common import Settings
 
 directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                     'trytond')))
+proteus_directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
+                    'proteus')))
 
 if os.path.isdir(directory):
     sys.path.insert(0, directory)
+if os.path.isdir(proteus_directory):
+    sys.path.insert(0, proteus_directory)
 
 from proteus import (
     config as pconfig,
@@ -22,31 +26,40 @@ from proteus import (
 TODAY = datetime.date.today()
 NOW = datetime.datetime.now()
 
+logger = logging.getLogger('Startup')
 
-def parse_arguments(arguments):
-    usage = 'usage: %prog [options] <database>'
-    parser = OptionParser(usage=usage)
-    parser.add_option('-m', '--module', dest='module')
 
-    (option, arguments) = parser.parse_args(arguments)
+def parse_arguments():
+    #usage = 'usage: %prog [options] <database>'
+    #parser = argparse.ArgumentParser(usage=usage)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('database')
+    parser.add_argument('--module', '-m', metavar='MODULE_NAME',
+        dest='modules', action='append',
+        help='module that will be installed/upgraded.')
+    parser.add_argument('--demo', action='store_true',
+        help='create demo data after create real data')
+    parser.add_argument('--only-demo', action='store_true',
+        help='only create demo date. Database must exists with real data '
+        'created')
+    parser.add_argument('--verbose', '-v', action='store_true',
+        help='Print more verbose log messages', default=False)
 
-    settings = Settings()
+    settings = parser.parse_args()
 
-    # Remove first argument because it's application name
-    arguments.pop(0)
-
-    if not arguments:
-        parser.error('Database not given')
-    settings.database = arguments.pop(0)
-
-    settings.module = option.module
+    if settings.verbose:
+        logger.setLevel(logging.DEBUG)
+        logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
+    else:
+        logger.setLevel(logging.INFO)
+        logging.basicConfig(stream=sys.stderr, level=logging.ERROR)
 
     return settings
 
 
 def connect_database(database, password='admin', database_type='postgresql'):
     return pconfig.set_trytond(database, database_type=database_type,
-        password=password)
+        password=password, config_file='trytond/etc/trytond.conf')
 
 
 def install_modules(config, modules):
@@ -174,7 +187,6 @@ def create_chart_of_accounts(config, template_name, company):
             ('kind', '=', 'receivable'),
             ('company', '=', company.id),
             ])
-    print "receivable: ", receivable
     receivable = receivable[0]
     payable = Account.find([
             ('kind', '=', 'payable'),
@@ -330,11 +342,35 @@ def remove_warehouse_and_locations(warehouse):
 
 
 if __name__ == "__main__":
-    settings = parse_arguments(sys.argv)
+    settings = parse_arguments()
 
     config = connect_database(settings.database)
-    install_modules(config, [settings.module])
+    if not settings.modules:
+        sys.exit()
 
-    create_company(config, '<your name>')
-    create_fiscal_year(config)
-    create_chart_of_accounts(config)
+    inst_upg_modules, installed_modules = install_modules(config,
+        settings.modules)
+    logger.info('Modules installed or upgraded: %s' % inst_upg_modules)
+    logger.debug('All installed modules: %s' % installed_modules)
+
+    if not settings.only_demo:
+        logger.info('Load start data in %s' % settings.database)
+
+        if 'company' in installed_modules:
+            company = create_company(config, u'NaN·tic')
+        logger.info('Company created: %s' % company)
+
+        # TODO: create_nantic_user(config)
+
+        if 'account_es_pyme' in installed_modules:
+            create_chart_of_accounts(config,
+                'Plan General Contable PYMES 2008', company)
+            logger.info('Chart of accounts created')
+        elif 'account' in installed_modules:
+            create_chart_of_accounts(config, 'Minimal Account Chart', company)
+            logging.getLogger('Xarxafarma').info('Chart of accounts created')
+
+        if 'account' in installed_modules:
+            fiscalyear = create_fiscal_year(config, company)
+            logging.getLogger('Xarxafarma').info('Fiscal year created: %s'
+                % fiscalyear)

@@ -32,6 +32,3 @@ find . -type f -exec sed -i "s/<module>/$1/g" {} \;
 mv tests/test.py tests/test_$1.py
 popd
 
-
-
-
