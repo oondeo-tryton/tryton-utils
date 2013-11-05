@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
         if 'company' in installed_modules:
             company = create_company(config, u'NaN·tic')
-        logger.info('Company created: %s' % company)
+            logger.info('Company created: %s' % company)
 
         # TODO: create_nantic_user(config)
 
