@@ -20,4 +20,5 @@
 if [ -d "nereid" ]; then
     echo "nereid"
     cp nereid/trytond_nereid/ trytond/trytond/modules/nereid
+    cp -f utils/nereid_setup.py ../nereid/setup.py
 fi
