@@ -31,6 +31,11 @@ import shutil
 import datetime
 import glob
 import socket
+import sys
+
+if os.path.exists('./nereid_app'):
+    sys.path.insert(0,'nereid')
+
 
 # krestart is the same as restart but will execute kill after
 # stop() and before the next start()
