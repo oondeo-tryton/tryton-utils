@@ -46,29 +46,30 @@ def parse_arguments(arguments):
     return settings
 
 def check_translation(file_name):
-
     po = polib.POFile(file_name)
-    print "* Percentage Translated: ", po.percent_translated()
+    print "  * Percentage Translated: ", po.percent_translated()
     untranslated = po.untranslated_entries()
     if untranslated:
-        print "* Untranslated terms ------------------"
+        print "  * Untranslated terms ------------------"
         for entry in untranslated:
             print "   ", entry.msgid
 
     fuzzy = po.fuzzy_entries()
     if fuzzy:
-        print "* Fuzzy terms ------------------"
+        print "  * Fuzzy terms ------------------"
         for entry in fuzzy:
             print "   ", entry.msgid
 
 if __name__ == "__main__":
-
     settings = parse_arguments(sys.argv[1:])
 
     print "* Check translation for module:", settings.module
     locale_dir = os.path.join(os.getcwd(), 'modules', settings.module,
         'locale')
     locale_file = os.path.join(locale_dir, settings.lang + '.po')
-    print "* File:", locale_file
-    check_translation(locale_file)
+    if not os.path.exists(locale_file):
+        print "  * File not found:", locale_file
+    else:
+        print "  * File:", locale_file
+        check_translation(locale_file)
 
