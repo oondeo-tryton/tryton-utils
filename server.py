@@ -33,9 +33,6 @@ import glob
 import socket
 import sys
 
-if os.path.exists('./nereid_app'):
-    sys.path.insert(0,'nereid')
-
 
 # krestart is the same as restart but will execute kill after
 # stop() and before the next start()
@@ -229,7 +226,7 @@ def db():
     #        line.append('%s=%s' % (field, record[field]))
     #    print ' '.join(line)
 
-def fork_and_call(call, pidfile=None, logfile=None, cwd=None):
+def fork_and_call(call, pidfile=None, logfile=None, cwd=None, env=None):
     # do the UNIX double-fork magic, see Stevens' "Advanced
     # Programming in the UNIX Environment" for details (ISBN 0201563177)
     try:
@@ -258,7 +255,8 @@ def fork_and_call(call, pidfile=None, logfile=None, cwd=None):
     else:
         output = None
     # do stuff
-    process = subprocess.Popen(call, stdout=output, stderr=output, cwd=cwd)
+    process = subprocess.Popen(call, stdout=output, stderr=output, cwd=cwd,
+        env=env)
 
     if pidfile:
         file = open(pidfile, 'w')
@@ -485,7 +483,9 @@ def start(settings):
 
     # Create pidfile ourselves because if OpenERP server crashes on start it may
     # not have created the file yet while keeping the process running.
-    fork_and_call(call, settings.pidfile, settings.logfile)
+    fork_and_call(call, settings.pidfile, settings.logfile, env={
+            'PYTHONPATH': 'nereid_app',
+            })
 
 def start_web(settings):
     """
