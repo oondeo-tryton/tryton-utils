@@ -162,7 +162,7 @@ def create_company(config, name, street=None, zip=None, city=None,
     return company
 
 
-def create_chart_of_accounts(config, template_name, company):
+def create_chart_of_accounts(config, template_name, company, digits=None):
     AccountTemplate = Model.get('account.account.template')
     Account = Model.get('account.account')
 
@@ -181,6 +181,7 @@ def create_chart_of_accounts(config, template_name, company):
     create_chart.execute('account')
     create_chart.form.account_template = account_templates[0]
     create_chart.form.company = company
+    create_chart.form.account_code_digits=digits
     create_chart.execute('create_account')
 
     receivable = Account.find([
