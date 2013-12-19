@@ -57,9 +57,11 @@ def parse_arguments():
     return settings
 
 
-def connect_database(database, password='admin', database_type='postgresql'):
+def connect_database(database, password='admin', database_type='postgresql',
+        language='es_ES'):
     return pconfig.set_trytond(database, database_type=database_type,
-        password=password, config_file='trytond/etc/trytond.conf')
+        password=password, language=language,
+        config_file='trytond/etc/trytond.conf')
 
 
 def install_modules(config, modules):
@@ -181,7 +183,7 @@ def create_chart_of_accounts(config, template_name, company, digits=None):
     create_chart.execute('account')
     create_chart.form.account_template = account_templates[0]
     create_chart.form.company = company
-    create_chart.form.account_code_digits=digits
+    create_chart.form.account_code_digits = digits
     create_chart.execute('create_account')
 
     receivable = Account.find([
