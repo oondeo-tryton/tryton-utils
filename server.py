@@ -140,7 +140,7 @@ def processes(filter=None):
     for process in psutil.get_process_list():
         try:
             cmdline = ' '.join(process.cmdline)
-        except psutil.error.NoSuchProcess:
+        except psutil.NoSuchProcess:
             # The process may disappear in the middle of the loop
             # so simply ignore it.
             pass
