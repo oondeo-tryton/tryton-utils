@@ -164,24 +164,27 @@ def create_company(config, name, street=None, zip=None, city=None,
     return company
 
 
-def create_chart_of_accounts(config, template_name, company, digits=None):
+def create_chart_of_accounts(config, module, fs_id, company, digits=None):
     AccountTemplate = Model.get('account.account.template')
     Account = Model.get('account.account')
+    ModelData = Model.get('ir.model.data')
 
     root_accounts = Account.find([('parent', '=', None)])
     if root_accounts:
         return
 
-    account_templates = AccountTemplate.find([
-            ('name', '=', template_name),
-            ('parent', '=', None),
-            ])
-    assert len(account_templates) == 1, ('Unexpected num of root templates '
-        'with name "%s": %s' % (template_name, account_templates))
+    data = ModelData.find([
+        ('module', '=', module),
+        ('fs_id', '=', fs_id)], limit=1)
+
+    assert len(data) == 1, ('Unexpected num of root templates '
+        'with name "%s": %s' % (module, fs_id))
+
+    account_template = data[0].db_id
 
     create_chart = Wizard('account.create_chart')
     create_chart.execute('account')
-    create_chart.form.account_template = account_templates[0]
+    create_chart.form.account_template = AccountTemplate(account_template)
     create_chart.form.company = company
     create_chart.form.account_code_digits = digits
     create_chart.execute('create_account')
@@ -364,16 +367,15 @@ if __name__ == "__main__":
             logger.info('Company created: %s' % company)
 
         # TODO: create_nantic_user(config)
-
-        if 'account_es_pyme' in installed_modules:
-            create_chart_of_accounts(config,
-                'Plan General Contable PYMES 2008', company)
-            logger.info('Chart of accounts created')
+        if 'account_es' in installed_modules:
+            create_chart_of_accounts(config, 'account_es', 'es', company, 8)
+            logging.getLogger('Utils').info('Chart of accounts created')
         elif 'account' in installed_modules:
-            create_chart_of_accounts(config, 'Minimal Account Chart', company)
-            logging.getLogger('Xarxafarma').info('Chart of accounts created')
+            create_chart_of_accounts(config, 'account',
+                'account_type_template_minimal', company)
+            logging.getLogger('Utils').info('Chart of accounts created')
 
         if 'account' in installed_modules:
             fiscalyear = create_fiscal_year(config, company)
-            logging.getLogger('Xarxafarma').info('Fiscal year created: %s'
+            logging.getLogger('Utils').info('Fiscal year created: %s'
                 % fiscalyear)
