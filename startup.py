@@ -309,7 +309,7 @@ def create_location(name, type, parent=None, code=None, address=None):
 
 
 def create_warehouse(name, code=None, address=None,
-        separate_input=False, separate_output=False):
+        separate_input=True, separate_output=True):
     warehouse = create_location(name, 'warehouse', code=code, address=address)
 
     storage_location = create_location('%s Storage' % name, 'storage')
