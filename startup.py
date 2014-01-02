@@ -42,6 +42,7 @@ def parse_arguments():
     parser.add_argument('--only-demo', action='store_true',
         help='only create demo date. Database must exists with real data '
         'created')
+    parser.add_argument('--language', '-l', default='es_ES')
     parser.add_argument('--verbose', '-v', action='store_true',
         help='Print more verbose log messages', default=False)
 
@@ -350,7 +351,7 @@ def remove_warehouse_and_locations(warehouse):
 if __name__ == "__main__":
     settings = parse_arguments()
 
-    config = connect_database(settings.database)
+    config = connect_database(settings.database, language=settings.language)
     if not settings.modules:
         sys.exit()
 
