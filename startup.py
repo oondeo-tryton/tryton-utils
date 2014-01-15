@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 from dateutil.relativedelta import relativedelta
+from decimal import Decimal
 
 directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                     'trytond')))
@@ -309,6 +310,53 @@ def create_location(name, type, parent=None, code=None, address=None):
             address=address)
 
 
+def create_product(name, code, template, cost_price, list_price, type='goods', 
+        unit=None):
+
+    ProductUom = Model.get('product.uom')
+    Product = Model.get('product.product')
+    ProductTemplate = Model.get('product.template')
+    Account = Model.get('account.account')
+    Company = Model.get('company.company')
+    company = Company(1)
+
+    product = Product.find([('name', '=', name), ('code', '=', code)])
+    if product:
+        return
+
+    if unit is None:
+        unit = ProductUom(1)
+
+    if template is None:
+        template = ProductTemplate()
+        template.name = name
+        template.default_uom = unit
+        template.type = type
+        template.list_price = Decimal(str(list_price))
+        template.cost_price = Decimal(str(cost_price))
+
+        if hasattr(template, 'account_expense'):
+            expense = Account.find([
+                ('kind', '=', 'expense'),
+                ('company', '=', company.id),
+                ])
+            if expense:
+                template.account_expense = expense[0]
+        if hasattr(template, 'account_revenue'):
+            revenue = Account.find([
+                ('kind', '=', 'revenue'),
+                ('company', '=', company.id),
+                ])
+            if revenue:
+                template.account_revenue = revenue[0]
+        template.save()
+    
+    product = Product()
+    product.template = template
+    product.code = code
+    product.save()
+
+
 def create_warehouse(name, code=None, address=None,
         separate_input=True, separate_output=True):
     warehouse = create_location(name, 'warehouse', code=code, address=address)
@@ -380,3 +428,4 @@ if __name__ == "__main__":
             fiscalyear = create_fiscal_year(config, company)
             logging.getLogger('Utils').info('Fiscal year created: %s'
                 % fiscalyear)
+
