@@ -8,6 +8,7 @@ import os
 import sys
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
+from random import randrange
 
 directory = os.path.abspath(os.path.normpath(os.path.join(os.getcwd(),
                     'trytond')))
@@ -310,8 +311,8 @@ def create_location(name, type, parent=None, code=None, address=None):
             address=address)
 
 
-def create_product(name, code, template, cost_price, list_price, type='goods', 
-        unit=None):
+def create_product(name, code="", template=None, cost_price=None,
+        list_price=None, type='goods', unit=None):
 
     ProductUom = Model.get('product.uom')
     Product = Model.get('product.product')
@@ -322,7 +323,13 @@ def create_product(name, code, template, cost_price, list_price, type='goods',
 
     product = Product.find([('name', '=', name), ('code', '=', code)])
     if product:
-        return
+        return product[0]
+
+    if not cost_price:
+        cost_price = randrange(0, 1000)
+
+    if not list_price:
+        list_price = cost_price * randrange(1, 2)
 
     if unit is None:
         unit = ProductUom(1)
@@ -350,11 +357,98 @@ def create_product(name, code, template, cost_price, list_price, type='goods',
             if revenue:
                 template.account_revenue = revenue[0]
         template.save()
-    
+
     product = Product()
     product.template = template
     product.code = code
     product.save()
+    return product
+
+
+def create_workcenter_category(name, cost_price=None, unit=None):
+
+    WorkCenterCategory = Model.get('production.work_center.category')
+
+    wc = WorkCenterCategory.find([('name', '=', name)])
+    if wc:
+        return wc[0]
+    if not cost_price:
+        cost_price = randrange(0, 1000)
+
+    wc = WorkCenterCategory()
+    wc.name = name
+    wc.cost_price = Decimal(str(cost_price))
+    wc.uom = unit
+    wc.save()
+    return wc
+
+
+def create_workcenter(name, category, type='machine',
+        cost_price=None, uom=None):
+
+    WorkCenter = Model.get('production.work_center')
+
+    wc = WorkCenter.find([('name', '=', name)])
+    if wc:
+        return wc[0]
+    if not cost_price:
+        cost_price = randrange(0, 1000)
+
+    wc = WorkCenter()
+    wc.name = name
+    wc.category = category
+    wc.type = type
+    wc.cost_price = cost_price
+    wc.uom = uom
+    wc.save()
+    return wc
+
+
+def create_operation_type(name):
+    OperationType = Model.get('production.operation.type')
+
+    op = OperationType.find([('name', '=', name)])
+    if op:
+        return op[0]
+
+    op = OperationType()
+    op.name = name
+    op.save()
+    return op
+
+
+def create_route(name):
+    Route = Model.get('production.route')
+
+    route = Route.find([('name', '=', name)])
+    if route:
+        return route[0]
+
+    route = Route()
+    route.name = name
+    route.save()
+    return route
+
+
+def create_route_operation(route, sequence, operation_type, wc, wc_category,
+        quantity, uom):
+
+    OperationRoute = Model.get('production.route.operation')
+    op_route = OperationRoute.find([('route', '=', route.id),
+            ('operation_type', '=', operation_type.id)])
+
+    if op_route:
+        return op_route[0]
+
+    op = OperationRoute()
+    op.route = route
+    op.operation_type = operation_type
+    op.work_center_category = wc_category
+    op.work_center = wc
+    op.unit = uom
+    op.quantity = quantity
+    op.save()
+    return op
 
 
 def create_warehouse(name, code=None, address=None,
@@ -428,4 +522,3 @@ if __name__ == "__main__":
             fiscalyear = create_fiscal_year(config, company)
             logging.getLogger('Utils').info('Fiscal year created: %s'
                 % fiscalyear)
-
