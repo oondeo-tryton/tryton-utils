@@ -60,11 +60,9 @@ def parse_arguments():
     return settings
 
 
-def connect_database(database, password='admin', database_type='postgresql',
-        language='es_ES'):
+def connect_database(database, password='admin', database_type='postgresql'):
     return pconfig.set_trytond(database, database_type=database_type,
-        password=password, language=language,
-        config_file='trytond/etc/trytond.conf')
+        password=password, config_file='trytond/etc/trytond.conf')
 
 
 def install_modules(config, modules):
@@ -493,7 +491,7 @@ def remove_warehouse_and_locations(warehouse):
 if __name__ == "__main__":
     settings = parse_arguments()
 
-    config = connect_database(settings.database, language=settings.language)
+    config = connect_database(settings.database)
     if not settings.modules:
         sys.exit()
 
