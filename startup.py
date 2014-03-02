@@ -91,6 +91,27 @@ def install_modules(config, modules):
     return modules, installed_modules
 
 
+def create_post_move_sequence(config, fiscalyears=None):
+    '''
+    Create differents post moes for every fiscalyear
+    '''
+
+    FiscalYear = Model.get('account.fiscalyear')
+    Sequence = Model.get('ir.sequence')
+    if not fiscalyears:
+        fiscalyears = FiscalYear.find([])
+
+    sequences = []
+
+    for fiscalyear in fiscalyears:
+        sequence = Sequence()
+        sequence.code = 'account.move'
+        sequence.name = fiscalyear.name
+        sequence.save()
+        sequences.append((sequence.id, fiscalyear.id))
+    return sequences
+
+
 def create_party(config, name, street=None, zip=None, city=None,
         subdivision_code=None, country_code='ES', phone=None, website=None):
     Address = Model.get('party.address')

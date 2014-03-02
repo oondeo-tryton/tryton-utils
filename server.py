@@ -255,8 +255,7 @@ def fork_and_call(call, pidfile=None, logfile=None, cwd=None, env=None):
     else:
         output = None
     # do stuff
-    process = subprocess.Popen(call, stdout=output, stderr=output, cwd=cwd,
-        env=env)
+    process = subprocess.Popen(call, stdout=output, stderr=output, cwd=cwd)
 
     if pidfile:
         file = open(pidfile, 'w')
