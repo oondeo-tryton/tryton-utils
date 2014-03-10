@@ -460,7 +460,7 @@ def start(settings):
         sys.exit(1)
 
     # Set executable name
-    call = ['python', '-u', os.path.join(path, 'bin', 'trytond')]
+    call = [os.path.join(path, 'bin', 'trytond')]
 
     if os.path.exists(settings.config):
         call += ['-c', settings.config]

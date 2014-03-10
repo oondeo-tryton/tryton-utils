@@ -546,7 +546,7 @@ if __name__ == "__main__":
 
         # TODO: create_nantic_user(config)
         if 'account_es' in installed_modules:
-            create_chart_of_accounts(config, 'account_es', 'es', company, 8)
+            create_chart_of_accounts(config, 'account_es', 'pgc_0', company, 8)
             logging.getLogger('Utils').info('Chart of accounts created')
         elif 'account' in installed_modules:
             create_chart_of_accounts(config, 'account',
