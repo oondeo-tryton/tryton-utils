@@ -65,6 +65,19 @@ def connect_database(database, password='admin', database_type='postgresql'):
         password=password, config_file='trytond/etc/trytond.conf')
 
 
+def set_active_languages(config, lang_codes=None):
+    Lang = Model.get('ir.lang')
+
+    if not lang_codes:
+        lang_codes = ['ca_ES', 'es_ES']
+    langs = Lang.find([
+            ('code', 'in', lang_codes),
+            ])
+    Lang.write([l.id for l in langs], {
+            'translatable': True,
+            }, config.context)
+
+
 def install_modules(config, modules):
     '''
     Function get from tryton_demo.py in tryton-tools repo:
@@ -375,12 +388,15 @@ def create_product(name, code="", template=None, cost_price=None,
                 ])
             if revenue:
                 template.account_revenue = revenue[0]
-        template.save()
 
-    product = Product()
-    product.template = template
-    product.code = code
-    product.save()
+        template.products[0].code = code
+        template.save()
+        product = template.products[0]
+    else:
+        product = Product()
+        product.template = template
+        product.code = code
+        product.save()
     return product
 
 
