@@ -67,15 +67,56 @@ def connect_database(database, password='admin', database_type='postgresql'):
 
 def set_active_languages(config, lang_codes=None):
     Lang = Model.get('ir.lang')
+    User = Model.get('res.user')
 
     if not lang_codes:
         lang_codes = ['ca_ES', 'es_ES']
     langs = Lang.find([
             ('code', 'in', lang_codes),
             ])
+    assert len(langs) > 0
     Lang.write([l.id for l in langs], {
             'translatable': True,
             }, config.context)
+
+    default_langs = [l for l in langs if l.code == lang_codes[0]]
+    if not default_langs:
+        default_langs = langs
+    User.write([1], {
+            'language': default_langs[0].id,
+            }, config.context)
+
+
+def upgrade_modules(config, modules=None, all=False):
+    '''
+    Function get from tryton_demo.py in tryton-tools repo:
+    http://hg.tryton.org/tryton-tools
+    '''
+    assert all or modules
+
+    Module = Model.get('ir.module.module')
+    if all:
+        modules = Module.find([
+                ('state', '=', 'installed'),
+                ])
+    else:
+        modules = Module.find([
+                ('name', 'in', modules),
+                ('state', '=', 'installed'),
+                ])
+
+    Module.upgrade([x.id for x in modules], config.context)
+    Wizard('ir.module.module.install_upgrade').execute('upgrade')
+
+    ConfigWizardItem = Model.get('ir.module.module.config_wizard.item')
+    for item in ConfigWizardItem.find([('state', '!=', 'done')]):
+        item.state = 'done'
+        item.save()
+
+    upgraded_modules = [x.name for x in Module.find([
+                ('state', '=', 'to_upgrade'),
+                ])]
+    return upgraded_modules
 
 
 def install_modules(config, modules):
