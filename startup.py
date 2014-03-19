@@ -75,6 +75,7 @@ def set_active_languages(config, lang_codes=None):
             ('code', 'in', lang_codes),
             ])
     assert len(langs) > 0
+
     Lang.write([l.id for l in langs], {
             'translatable': True,
             }, config.context)
@@ -82,9 +83,19 @@ def set_active_languages(config, lang_codes=None):
     default_langs = [l for l in langs if l.code == lang_codes[0]]
     if not default_langs:
         default_langs = langs
-    User.write([1], {
-            'language': default_langs[0].id,
-            }, config.context)
+    users = User.find([])
+    if users:
+        User.write([u.id for u in users], {
+                'language': default_langs[0].id,
+                }, config.context)
+
+    # Reload context
+    User = Model.get('res.user')
+    config._context = User.get_preferences(True, config.context)
+
+    if not all(l.translatable for l in langs):
+        # langs is fetched before wet all translatable
+        upgrade_modules(config, all=True)
 
 
 def upgrade_modules(config, modules=None, all=False):
@@ -356,7 +367,7 @@ def create_fiscal_year(config, company, year=None):
     return fiscalyear
 
 
-def create_analytic_account(name, type, parent):
+def create_analytic_account(name, type, parent, currency=None):
     Account = Model.get('analytic_account.account')
     account = Account(name=name,
         type=type,
@@ -364,6 +375,8 @@ def create_analytic_account(name, type, parent):
         root=parent and parent.root or parent,
         parent=parent,
         display_balance='credit-debit')
+    if currency:
+        account.currency = currency
     return account
 
 
