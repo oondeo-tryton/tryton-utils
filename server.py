@@ -139,7 +139,11 @@ def processes(filter=None):
     processes = []
     for process in psutil.get_process_list():
         try:
-            cmdline = ' '.join(process.cmdline)
+            if isinstance(process.cmdline, (tuple, list)):
+               cmdline = process.cmdline
+            else:
+               cmdline = process.cmdline()
+            cmdline = ' '.join(cmdline)
         except psutil.NoSuchProcess:
             # The process may disappear in the middle of the loop
             # so simply ignore it.
