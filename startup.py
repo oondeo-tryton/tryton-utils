@@ -32,8 +32,8 @@ logger = logging.getLogger('Startup')
 
 
 def parse_arguments():
-    #usage = 'usage: %prog [options] <database>'
-    #parser = argparse.ArgumentParser(usage=usage)
+    # usage = 'usage: %prog [options] <database>'
+    # parser = argparse.ArgumentParser(usage=usage)
     parser = argparse.ArgumentParser()
     parser.add_argument('database')
     parser.add_argument('--module', '-m', metavar='MODULE_NAME',
@@ -95,6 +95,7 @@ def set_active_languages(config, lang_codes=None):
 
     if not all(l.translatable for l in langs):
         # langs is fetched before wet all translatable
+        print "Upgrading all because new translatable languages has been added"
         upgrade_modules(config, all=True)
 
 
@@ -178,7 +179,8 @@ def create_post_move_sequence(config, fiscalyears=None):
 
 
 def create_party(config, name, street=None, zip=None, city=None,
-        subdivision_code=None, country_code='ES', phone=None, website=None):
+        subdivision_code=None, country_code='ES', phone=None, website=None,
+        account_payable=None, account_receivable=None):
     Address = Model.get('party.address')
     ContactMechanism = Model.get('party.contact_mechanism')
     Country = Model.get('country.country')
@@ -211,6 +213,11 @@ def create_party(config, name, street=None, zip=None, city=None,
         party.contact_mechanisms.append(
             ContactMechanism(type='website',
                 value=website))
+
+    if account_payable:
+        party.account_payable = account_payable
+    if account_receivable:
+        party.account_receivable = account_receivable
 
     party.save()
     return party
@@ -398,7 +405,7 @@ def create_location(name, type, parent=None, code=None, address=None):
 
 
 def create_product(name, code="", template=None, cost_price=None,
-        list_price=None, type='goods', unit=None):
+        list_price=None, type='goods', unit=None, consumable=False):
 
     ProductUom = Model.get('product.uom')
     Product = Model.get('product.product')
@@ -425,6 +432,7 @@ def create_product(name, code="", template=None, cost_price=None,
         template.name = name
         template.default_uom = unit
         template.type = type
+        template.consumable = consumable
         template.list_price = Decimal(str(list_price))
         template.cost_price = Decimal(str(cost_price))
 
@@ -452,6 +460,29 @@ def create_product(name, code="", template=None, cost_price=None,
         product.code = code
         product.save()
     return product
+
+
+def create_product_category(name, parent=None, account_parent=False,
+        account_expense=None, account_revenue=None, taxes_parent=False,
+        customer_taxes=None, supplier_taxes=None):
+    ProductCategory = Model.get('product.category')
+
+    categories = ProductCategory.find([
+                ('name', '=', name),
+                ('parent', '=', parent),
+                ])
+    if categories:
+        return categories[0]
+    category = ProductCategory(name=name,
+        parent=parent,
+        account_parent=account_parent,
+        account_expense=account_expense,
+        account_revenue=account_revenue,
+        taxes_parent=taxes_parent,
+        customer_taxes=customer_taxes,
+        supplier_taxes=supplier_taxes)
+    category.save()
+    return category
 
 
 def create_workcenter_category(name, cost_price=None, unit=None):
