@@ -83,8 +83,11 @@ if __name__ == "__main__":
         path = settings.path if settings.path else ''
         path = os.path.join(path, dest_path % module.name)
         if not os.path.exists(path):
-            print 'Path \'%s\' not found.' % path
-            continue
+            path = settings.path if settings.path else ''
+            path = os.path.join(path, module.name, 'locale')
+            if not os.path.exists(path):
+                print 'Path \'%s\' not found.' % path
+                continue
         translation_export = Wizard('ir.translation.export')
         translation_export.form.language = language
         translation_export.form.module = module
