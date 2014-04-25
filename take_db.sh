@@ -6,6 +6,7 @@ db=""
 tmpdb="nan_tmp_product_product"
 pgsql_orig_port=5432
 pgsql_dest_port=5432
+pgsql_orig_user=""
 limit=""
 full_backup=0
 oscom=0
@@ -26,6 +27,7 @@ function help()
     echo "    -d <dbname>: (Required) the db name to dump."
     echo "    -p <pgsql_orig_port>: by default $pgsql_orig_port."
     echo "    -P <pgsql_dest_port>: by default $pgsql_dest_port."
+    echo "    -u <pgsql_orig_user>: the user used in the remote database connection. If not specified, it uses the Unix user (peer identification)"
     echo "    -l <scp_limit>: Limits the used bandwidth, specified in Kbit/s. By default no limits."
                 # -3 = Copies between two remote hosts are transferred through the local host.
                 #      Without this option the data is copied directly between the two remote hosts.
@@ -39,13 +41,14 @@ function help()
     exit 1
 }
 
-while getopts O:D:d:p:l:f:oa x; do
+while getopts O:D:d:p:P:u:l:f:oa x; do
     case "$x" in
         O) host_from="$OPTARG";;
         D) host_to="$OPTARG";;
         d) db="$OPTARG";;
         p) pgsql_orig_port="$OPTARG";;
         P) pgsql_dest_port="$OPTARG";;
+        u) pgsql_orig_user="-U $OPTARG";;
         l) limit="-l $OPTARG";;
         f) dest_dir="$OPTARG";;
         o) oscom=1
@@ -104,11 +107,11 @@ if [ $full_backup -eq 1 ]; then
     echo
     echo "#######   DUMPING THE $db DATABASE FROM $host_from HOST...   #######"
     if [ "$host_from" == "localhost" ]; then
-        pg_dump -p $pgsql_orig_port --no-owner --file=/tmp/$backup_all $db
+        pg_dump $pgsql_orig_user -p $pgsql_orig_port --no-owner --file=/tmp/$backup_all $db
         echo "#######   COMPRESSING THE $backup_all DB...   #######"
         /usr/bin/7z a /tmp/$backup_all_7z /tmp/$backup_all
     else
-        ssh $host_from "pg_dump -p $pgsql_orig_port --no-owner --file=$backup_all $db"
+        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --no-owner --file=$backup_all $db"
         echo "#######   COMPRESSING THE $backup_all DB...   #######"
         ssh $host_from "/usr/bin/7z a $backup_all_7z $backup_all"
     fi
@@ -125,37 +128,37 @@ else
     if [ $oscom -eq 1 ]; then
         echo "#######   CREATING THE TEMPORALLY TABLE FOR THE COPY OF PRODUCTS...   #######"
         if [ "$host_from" == "localhost" ]; then
-            psql -p $pgsql_orig_port $db -c "drop table if exists $tmpdb;"
-            psql -p $pgsql_orig_port $db -c "create table $tmpdb as select * from product_product;"
-            psql -p $pgsql_orig_port $db -c "update $tmpdb set image_med = null, image_sm_3 = null, image_sm_2 = null, image_sm_5 = null, image_sm_1 = null, image_sm_4 = null, image_sm_6 = null, image_lrg = null, image_xl_5 = null, image_xl_6 = null, image_xl_4 = null, image_xl_3 = null, image_xl_2 = null, image_xl_1 = null;"
+            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "drop table if exists $tmpdb;"
+            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "create table $tmpdb as select * from product_product;"
+            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "update $tmpdb set image_med = null, image_sm_3 = null, image_sm_2 = null, image_sm_5 = null, image_sm_1 = null, image_sm_4 = null, image_sm_6 = null, image_lrg = null, image_xl_5 = null, image_xl_6 = null, image_xl_4 = null, image_xl_3 = null, image_xl_2 = null, image_xl_1 = null;"
         else
-            ssh $host_from "psql -p $pgsql_orig_port $db -c \"drop table if exists $tmpdb;\""""
-            ssh $host_from "psql -p $pgsql_orig_port $db -c \"create table $tmpdb as select * from product_product;\""""
-            ssh $host_from "psql -p $pgsql_orig_port $db -c \"update $tmpdb set image_med = null, image_sm_3 = null, image_sm_2 = null, image_sm_5 = null, image_sm_1 = null, image_sm_4 = null, image_sm_6 = null, image_lrg = null, image_xl_5 = null, image_xl_6 = null, image_xl_4 = null, image_xl_3 = null, image_xl_2 = null, image_xl_1 = null;\""""
+            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"drop table if exists $tmpdb;\""""
+            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"create table $tmpdb as select * from product_product;\""""
+            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"update $tmpdb set image_med = null, image_sm_3 = null, image_sm_2 = null, image_sm_5 = null, image_sm_1 = null, image_sm_4 = null, image_sm_6 = null, image_lrg = null, image_xl_5 = null, image_xl_6 = null, image_xl_4 = null, image_xl_3 = null, image_xl_2 = null, image_xl_1 = null;\""""
         fi
         exclude_table="$exclude_table --exclude-table=product_product"
     fi
 
     echo "#######   DUMPING THE SCHEMA OF THE $db DATABASE FROM $host_from HOST...   #######"
     if [ "$host_from" == "localhost" ]; then
-        pg_dump -p $pgsql_orig_port --schema-only --no-owner --file=/tmp/$backup_schema $db
+        pg_dump $pgsql_orig_user -p $pgsql_orig_port --schema-only --no-owner --file=/tmp/$backup_schema $db
     else
-        ssh $host_from "pg_dump -p $pgsql_orig_port --schema-only --no-owner --file=$backup_schema $db"
+        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --schema-only --no-owner --file=$backup_schema $db"
     fi
 
     echo "#######   DUMPING THE DATA OF THE $db DATABASE FROM $host_from HOST...   #######"
     if [ "$host_from" == "localhost" ]; then
-        pg_dump -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=/tmp/$backup_data $db
+        pg_dump $pgsql_orig_user -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=/tmp/$backup_data $db
     else
-        ssh $host_from "pg_dump -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=$backup_data $db"
+        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=$backup_data $db"
     fi
 
     if [ $oscom -eq 1 ]; then
         echo "#######   REMOVING THE TEMPORALLY TABLE CREATED FOR THE COPY OF PRODUCTS...   #######"
         if [ "$host_from" == "localhost" ]; then
-            psql -p $pgsql_orig_port $db -c "drop table if exists $tmpdb;"
+            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "drop table if exists $tmpdb;"
         else
-            ssh $host_from "psql -p $pgsql_orig_port $db -c \"drop table if exists $tmpdb;\""
+            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"drop table if exists $tmpdb;\""
         fi
     fi
 
