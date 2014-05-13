@@ -286,7 +286,6 @@ def create_user(config, name, login, main_company, groups=None, company=None,
     if groups:
         for group in Group.find([('id', 'in', [g.id for g in groups])]):
             if group not in user.groups:
-                print "user %s, groups: %s, group: %s, group._parent: %s" % (user, user.groups, group, group._parent)
                 user.groups.append(group)
     return user
 
