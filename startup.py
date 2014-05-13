@@ -258,6 +258,39 @@ def create_company(config, name, street=None, zip=None, city=None,
     return company
 
 
+def create_user(config, name, login, main_company, groups=None, company=None,
+        lang_code='es_ES', timezone='Europe/Madrid'):
+    Group = Model.get('res.group')
+    Lang = Model.get('ir.lang')
+    User = Model.get('res.user')
+
+    users = User.find([('login', '=', login)])
+    if users:
+        return users[0]
+
+    user = User()
+    user.name = name
+    user.login = login
+    user.password = login
+    user.main_company = main_company
+    if company:
+        user.company = company
+    else:
+        user.company = main_company
+    if lang_code:
+        language, = Lang.find([('code', '=', lang_code)])
+        user.language = language
+    if timezone:
+        user.timezone = timezone
+
+    if groups:
+        for group in Group.find([('id', 'in', [g.id for g in groups])]):
+            if group not in user.groups:
+                print "user %s, groups: %s, group: %s, group._parent: %s" % (user, user.groups, group, group._parent)
+                user.groups.append(group)
+    return user
+
+
 def create_chart_of_accounts(config, module, fs_id, company, digits=None):
     AccountTemplate = Model.get('account.account.template')
     Account = Model.get('account.account')
@@ -474,13 +507,13 @@ def create_product_category(name, parent=None, account_parent=False,
     if categories:
         return categories[0]
     category = ProductCategory(name=name,
-        parent=parent,
-        account_parent=account_parent,
-        account_expense=account_expense,
-        account_revenue=account_revenue,
-        taxes_parent=taxes_parent,
-        customer_taxes=customer_taxes,
-        supplier_taxes=supplier_taxes)
+        parent=parent)
+    category.account_parent = account_parent
+    category.account_expense = account_expense
+    category.account_revenue = account_revenue
+    category.taxes_parent = taxes_parent
+    category.customer_taxes.extend(customer_taxes)
+    category.supplier_taxes.extend(supplier_taxes)
     category.save()
     return category
 
@@ -573,6 +606,15 @@ def create_route_operation(route, sequence, operation_type, wc, wc_category,
 
 def create_warehouse(name, code=None, address=None,
         separate_input=True, separate_output=True):
+    Location = Model.get('stock.location')
+
+    warehouses = Location.find([
+            ('name', '=', name),
+            ('type', '=', 'warehouse'),
+            ])
+    if warehouses:
+        return warehouses[0]
+
     warehouse = create_location(name, 'warehouse', code=code, address=address)
 
     storage_location = create_location('%s Storage' % name, 'storage')
