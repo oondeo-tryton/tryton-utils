@@ -274,7 +274,7 @@ class Settings(dict):
         super(Settings, self).__init__(*args, **kw)
         self.__dict__ = self
 
-def parse_arguments(arguments, root):
+def parse_arguments(arguments, root, extra=True):
     parser = optparse.OptionParser(usage='server.py [options] start|stop|'
         'restart|startserver|stopserver|restartserver|startweb|stopweb|'
         'restartweb|status|status_web|kill|krestart|config|config_web|'
@@ -360,7 +360,9 @@ def parse_arguments(arguments, root):
     settings.logfile = os.path.join(root, 'server.log')
     settings.logfile_web = os.path.join(root, 'web_server.log')
 
-    settings.extra_arguments = arguments[:]
+    settings.extra_arguments = []
+    if extra:
+        settings.extra_arguments = arguments[:]
 
     return settings
 
@@ -547,8 +549,9 @@ def stop(pidfile, warning=True):
         except OSError:
             print "Error trying to remove pidfile %s" % pidfile
 
-def tail(filename):
+def tail(filename, settings):
     file = open(filename, 'r')
+    update = False
     try:
         while 1:
             where = file.tell()
@@ -558,6 +561,11 @@ def tail(filename):
                 file.seek(where)
             else:
                 print line,
+	    if (settings.extra_arguments and '-u' in settings.extra_arguments
+                and 'Update/Init succeed!' in line):
+                update = True
+                break
+
     except KeyboardInterrupt:
         print "Server monitoring interrupted. Server will continue working..."
     finally:
@@ -737,15 +745,22 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
         # Ensure server.log has been created before executing 'tail'
         time.sleep(1)
         if pensettings.multi_port:
-            tail(multi_settings[0].logfile)
+            tail(multi_settings[0].logfile, multi_settings)
         else:
-            tail(settings.logfile)
+            tail(settings.logfile, settings)
+    
+
+    settings = parse_arguments(sys.argv, root, False)
+    settings.root = root
+    start(settings)
+    tail(settings.logfile, settings)
+
 
 if settings.action == 'status':
     if pensettings.multi_port:
-        tail(multi_settings[0].logfile)
+        tail(multi_settings[0].logfile, multi_settinmgs)
     else:
-        tail(settings.logfile)
+        tail(settings.logfile, settings)
 
 if settings.action == 'status_web':
-    tail(settings.logfile_web)
+    tail(settings.logfile_web, settings)
