@@ -563,13 +563,13 @@ def tail(filename, settings):
                 print line,
 	    if (settings.extra_arguments and '-u' in settings.extra_arguments
                 and 'Update/Init succeed!' in line):
-                update = True
-                break
+                return False
 
     except KeyboardInterrupt:
         print "Server monitoring interrupted. Server will continue working..."
     finally:
         file.close()
+    return True
 
 def create_config_file(pensettings, config, num_file=0, context={}):
     cronfile = context.get('cronfile')
@@ -745,16 +745,15 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
         # Ensure server.log has been created before executing 'tail'
         time.sleep(1)
         if pensettings.multi_port:
-            tail(multi_settings[0].logfile, multi_settings)
+            tail_out = tail(multi_settings[0].logfile, multi_settings)
         else:
-            tail(settings.logfile, settings)
-    
+            tail_out = tail(settings.logfile, settings)
 
-    settings = parse_arguments(sys.argv, root, False)
-    settings.root = root
-    start(settings)
-    tail(settings.logfile, settings)
-
+    if not tail_out:
+        settings = parse_arguments(sys.argv, root, False)
+        settings.root = root
+        start(settings)
+        tail(settings.logfile, settings)
 
 if settings.action == 'status':
     if pensettings.multi_port:
