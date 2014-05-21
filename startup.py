@@ -290,6 +290,18 @@ def create_user(config, name, login, main_company, groups=None, company=None,
     return user
 
 
+def load_bank_es():
+    'Loads all banks from spain'
+    load_banks = Wizard('load.banks')
+    load_banks.execute('accept')
+
+
+def load_country_zip_es():
+    'Loads zip codes from spain'
+    load_zips = Wizard('load.country.zips')
+    load_zips.execute('accept')
+
+
 def create_chart_of_accounts(config, module, fs_id, company, digits=None):
     AccountTemplate = Model.get('account.account.template')
     Account = Model.get('account.account')
@@ -678,6 +690,11 @@ if __name__ == "__main__":
             create_chart_of_accounts(config, 'account',
                 'account_type_template_minimal', company)
             logging.getLogger('Utils').info('Chart of accounts created')
+
+        if 'bank_es' in installed_modules:
+            load_bank_es()
+        if 'country_zip_es' in installed_modules:
+            load_country_zip_es()
 
         if 'account' in installed_modules:
             fiscalyear = create_fiscal_year(config, company)
