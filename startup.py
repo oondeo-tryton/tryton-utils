@@ -290,6 +290,27 @@ def create_user(config, name, login, main_company, groups=None, company=None,
     return user
 
 
+def create_sequence(name, code, strict=False, prefix=None, padding=None):
+    if strict:
+        Sequence = Model.get('ir.sequence.strict')
+    else:
+        Sequence = Model.get('ir.sequence')
+
+    sequences = Sequence.find([
+            ('name', '=', name),
+            ('code', '=', code),
+            ])
+    if sequences:
+        return sequences[0]
+
+    sequence = Sequence(
+        name=name,
+        code=code,
+        prefix=prefix,
+        padding=padding)
+    return sequence
+
+
 def load_bank_es():
     'Loads all banks from spain'
     load_banks = Wizard('load.banks')
