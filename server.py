@@ -712,6 +712,7 @@ if settings.action in ('stop', 'restart', 'krestart', 'stopserver',
             'restartweb'):
         stop(settings.pidfile_web, warning=False)
     stop(settings.pidfile_jasper, warning=False)
+    kill_process('celery', 'celery')
 
 if settings.action in ('kill', 'krestart'):
     kill()
