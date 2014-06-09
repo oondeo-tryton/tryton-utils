@@ -65,6 +65,10 @@ def parse_arguments(arguments):
 logger = logging.getLogger('create_xmls')
 options, module_name = parse_arguments(sys.argv)
 
+
+from trytond.config import CONFIG
+CONFIG['db_type'] = 'sqlite'
+os.environ['DB_NAME'] = ':memory:'
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import DB_NAME, USER, CONTEXT
 from trytond.transaction import Transaction
