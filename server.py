@@ -561,7 +561,8 @@ def tail(filename, settings):
                 file.seek(where)
             else:
                 print line,
-	    if (settings.extra_arguments and '-u' in settings.extra_arguments
+	    if (settings.extra_arguments and ('-u' in settings.extra_arguments
+                   or '-i' in settings.extra_arguments)
                 and 'Update/Init succeed!' in line):
                 return False
 
