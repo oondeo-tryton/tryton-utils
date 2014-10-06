@@ -452,13 +452,20 @@ def create_analytic_account(name, type, parent, currency=None):
     return account
 
 
-def create_location(name, type, parent=None, code=None, address=None):
+def create_location(name, type, parent=None, code=None, address=None,
+        active=True, input=None, output=None, storage=None, production=None):
     Location = Model.get('stock.location')
-
-    location = Location.find([
-            ('name', '=', name),
-            ('parent', '=', parent and parent.id or None),
-            ])
+    location = None
+    if code is not None:
+        location = Location.find([
+                ('code', '=', code),
+                ('parent', '=', parent and parent.id or None),
+                ])
+    if not location:
+        location = Location.find([
+                ('name', '=', name),
+                ('parent', '=', parent and parent.id or None),
+                ])
     if location:
         return location[0]
     else:
@@ -466,6 +473,11 @@ def create_location(name, type, parent=None, code=None, address=None):
             name=name,
             code=code,
             parent=parent,
+            input_location=input,
+            output_location=output,
+            storage_location=storage,
+            production_location=production,
+            active=active,
             address=address)
 
 
