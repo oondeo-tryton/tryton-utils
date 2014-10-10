@@ -754,11 +754,11 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
         else:
             tail_out = tail(settings.logfile, settings)
 
-    if not tail_out:
-        settings = parse_arguments(sys.argv, root, False)
-        settings.root = root
-        start(settings)
-        tail(settings.logfile, settings)
+        if not tail_out:
+            settings = parse_arguments(sys.argv, root, False)
+            settings.root = root
+            start(settings)
+            tail(settings.logfile, settings)
 
 if settings.action == 'status':
     if pensettings.multi_port:
