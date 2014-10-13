@@ -323,7 +323,8 @@ def load_country_zip_es():
     load_zips.execute('accept')
 
 
-def create_chart_of_accounts(config, module, fs_id, company, digits=None):
+def create_chart_of_accounts(config, module, fs_id, company, digits=None,
+        receivable_code=None, payable_code=None):
     AccountTemplate = Model.get('account.account.template')
     Account = Model.get('account.account')
     ModelData = Model.get('ir.model.data')
@@ -348,28 +349,21 @@ def create_chart_of_accounts(config, module, fs_id, company, digits=None):
     create_chart.form.account_code_digits = digits
     create_chart.execute('create_account')
 
-    receivable = Account.find([
-            ('kind', '=', 'receivable'),
-            ('company', '=', company.id),
-            ])
+    receivable_domain = [
+        ('kind', '=', 'receivable'),
+        ('company', '=', company.id),
+        ]
+    if receivable_code is not None:
+        receivable_domain.append(('code', '=', receivable_code))
+    receivable = Account.find(receivable_domain)
     receivable = receivable[0]
-    payable = Account.find([
-            ('kind', '=', 'payable'),
-            ('company', '=', company.id),
-            ])[0]
-    #revenue, = Account.find([
-    #        ('kind', '=', 'revenue'),
-    #        ('company', '=', company.id),
-    #        ])
-    #expense, = Account.find([
-    #        ('kind', '=', 'expense'),
-    #        ('company', '=', company.id),
-    #        ])
-    #cash, = Account.find([
-    #        ('kind', '=', 'other'),
-    #        ('company', '=', company.id),
-    #        ('name', '=', 'Main Cash'),
-    #        ])
+    payable_domain = [
+        ('kind', '=', 'payable'),
+        ('company', '=', company.id),
+        ]
+    if payable_code is not None:
+        payable_domain.append(('code', '=', payable_code))
+    payable = Account.find(payable_domain)[0]
     create_chart.form.account_receivable = receivable
     create_chart.form.account_payable = payable
     create_chart.execute('create_properties')
