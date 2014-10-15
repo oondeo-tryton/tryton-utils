@@ -72,6 +72,7 @@ os.environ['DB_NAME'] = ':memory:'
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import DB_NAME, USER, CONTEXT
 from trytond.transaction import Transaction
+from trytond.model import ModelView
 from trytond.pool import Pool
 
 
@@ -282,6 +283,8 @@ def create_xml(filename, module_name, model_names):
             if '-' in model.model:
                 continue
             Class = pool.get(model.model)
+            if not issubclass(Class, ModelView):
+                continue
             fields = Class._fields.keys()
             fields = sorted(list(set(fields) - set(['id', 'create_uid',
                         'create_date', 'write_uid', 'write_date',
