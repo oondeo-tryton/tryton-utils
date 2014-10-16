@@ -259,10 +259,12 @@ def create_company(config, name, street=None, zip=None, city=None,
 
 
 def create_user(config, name, login, main_company, groups=None, company=None,
-        lang_code='es_ES', timezone='Europe/Madrid'):
+        lang_code='es_ES', timezone='Europe/Madrid', create_employee=False):
     Group = Model.get('res.group')
     Lang = Model.get('ir.lang')
     User = Model.get('res.user')
+    Party = Model.get('party.party')
+    Employee = Model.get('company.employee')
 
     users = User.find([('login', '=', login)])
     if users:
@@ -287,6 +289,15 @@ def create_user(config, name, login, main_company, groups=None, company=None,
         for group in Group.find([('id', 'in', [g.id for g in groups])]):
             if group not in user.groups:
                 user.groups.append(group)
+    if create_employee:
+        party = Party(name=name)
+        party.save()
+        employee = Employee()
+        employee.party = party
+        employee.company = company or main_company
+        employee.save()
+        user.employees.append(employee)
+        user.employee = employee
     return user
 
 
