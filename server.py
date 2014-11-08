@@ -21,17 +21,14 @@
 import ConfigParser
 import optparse
 import os
-import signal
 import socket
 import subprocess
 import sys
 import time
-import re
 import shutil
 import datetime
 import glob
-import socket
-import sys
+import locale
 
 
 # krestart is the same as restart but will execute kill after
@@ -484,6 +481,9 @@ def start(settings):
     elif settings.debug_rpc:
         call += ['--log-level', 'debug_rpc']
 
+    if '--all' in settings.extra_arguments:
+        call += ['-u', 'ir']
+        settings.extra_arguments.delete('--all')
     call += settings.extra_arguments
 
     if settings.verbose:
@@ -554,7 +554,6 @@ def stop(pidfile, warning=True):
 
 def tail(filename, settings):
     file = open(filename, 'r')
-    update = False
     try:
         while 1:
             where = file.tell()
@@ -565,7 +564,7 @@ def tail(filename, settings):
             else:
                 print line,
 	    if (settings.extra_arguments and ('-u' in settings.extra_arguments
-                   or '-i' in settings.extra_arguments)
+                   or '--all' in settings.extra_arguments)
                 and 'Update/Init succeed!' in line):
                 return False
 
