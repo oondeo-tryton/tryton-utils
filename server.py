@@ -29,6 +29,7 @@ import shutil
 import datetime
 import glob
 import locale
+from urlparse import urlparse
 
 
 # krestart is the same as restart but will execute kill after
@@ -378,7 +379,7 @@ def take_free_port(num=1):
         n += 1
     return ports
 
-def load_config(filename, settings, pensettings=None):
+def load_config(filename, settings):
     values = {}
 
     if not os.path.isfile(filename):
@@ -390,59 +391,25 @@ def load_config(filename, settings, pensettings=None):
         for (name, value) in parser.items(section):
             values['%s.%s' % (section, name)] = value
 
-    if values.get('options.server_pidfile'):
+    if values.get('general.dev'):
+        settings.dev = '--dev'
+
+    if values.get('general.cron'):
+        settings.cron = '--cron'
+
+    if values.get('database.uri') and not settings.database:
+        parse = urlparse(values.get('database.uri'))
+        settings.database = parse.path[1:]
+
+    if values.get('general.server_pidfile'):
         settings.pidfile = values.get('options.server_pidfile')
 
-    if values.get('options.server_logfile'):
+    if values.get('general.server_logfile'):
         settings.logfile = values.get('options.server_logfile')
 
-    if values.get('options.jasperpid'):
+    if values.get('general.jasperpid'):
         settings.pidfile_jasper = values.get('options.jasperpid')
 
-    if pensettings is None:
-        return values
-
-    # Take the PEN values, if exist, from the penoption
-    # config section of the multiprocess
-    if values.get('penoptions.multi_port', 'False') == 'False':
-        pensettings.multi_port = False
-    else:
-        pensettings.multi_port = True
-    if pensettings.multi_port:
-        pensettings.filename = filename
-        # Add one server more for the esclusive cron server
-        pensettings.num_servers = int(values.get('penoptions.num_servers')) + 1
-        pensettings.max_con = values.get('penoptions.max_con')
-        if values.get('penoptions.create_cron', 'False') == 'False':
-            pensettings.create_cron = False
-        else:
-            pensettings.create_cron = True
-        if values.get('penoptions.cron_alone', 'False') == 'False':
-            pensettings.cron_alone = False
-        else:
-            pensettings.cron_alone = True
-        if values.get('penoptions.round_robin', 'False') == 'False':
-            pensettings.round_robin = ""
-        else:
-            pensettings.round_robin = "-r"
-        pensettings.penconfs = {}
-        host = values.get('penoptions.host')
-        for port in [values.get('options.port') or
-                values.get('options.xmlrpc_port'),
-                values.get('options.netport') or
-                values.get('options.netrpc_port'),
-                values.get('options.pyroport'),
-                values.get('options.xmlrpcs_port'),
-                values.get('options.ftp_server_port')]:
-            if port:
-                penconf = {
-                    'pidfile': "%s.%s" % (values.get('penoptions.pidfile'),
-                        port),
-                    'ctrl': "%s:%s" % (host, take_free_port()[0]),
-                    'host': host,
-                    'ports': take_free_port(pensettings.num_servers),
-                    }
-                pensettings.penconfs[port] = Settings(penconf)
     return values
 
 def find_directory(root, directories):
@@ -481,9 +448,6 @@ def start(settings):
     elif settings.debug_rpc:
         call += ['--log-level', 'debug_rpc']
 
-    if '--all' in settings.extra_arguments:
-        call += ['-u', 'ir']
-        settings.extra_arguments.delete('--all')
     call += settings.extra_arguments
 
     if settings.verbose:
@@ -574,86 +538,6 @@ def tail(filename, settings):
         file.close()
     return True
 
-def create_config_file(pensettings, config, num_file=0, context={}):
-    cronfile = context.get('cronfile')
-    webfile = context.get('webfile')
-    configfile_name = "%s%s" % (pensettings.filename, num_file)
-    configfile = open(configfile_name, 'w')
-    configfile.write("[options]\n")
-    for k, v in config.iteritems():
-        kvals = k.partition(".")
-        if kvals[0] == "options":
-            if v in pensettings.penconfs:
-                configfile.write("%s = %s\n" % (kvals[2],
-                        pensettings.penconfs[v].ports[num_file]))
-            elif not webfile and (kvals[2] == "config_web" or
-                kvals[2] == "server_web_logfile" or
-                kvals[2] == "server_start_web_pidfile"):
-                configfile.write("%s =\n" % kvals[2])
-            elif (kvals[2] == "server_logfile" or kvals[2] == "server_pidfile"
-                or kvals[2] == "server_start_pidfile"):
-                configfile.write("%s = %s%s\n" % (kvals[2], v, num_file))
-            else:
-                configfile.write("%s = %s\n" % (kvals[2], v))
-    if cronfile:
-        configfile.write("cron = True")
-    else:
-        configfile.write("cron = False")
-    configfile.close()
-    return configfile_name
-
-def create_multi_config_files(config, pensettings, settings):
-    # Prepare the differents config files as many as ports
-    # are deffined for the main config file
-    multi_settings = [None] * pensettings.num_servers
-    num_file = 0
-    # Create file that contain cron config call
-    multi_settings[num_file] = Settings(settings)
-    multi_settings[num_file].config = create_config_file(pensettings, config,
-            num_file, {'cronfile': pensettings.create_cron, 'webfile': False})
-
-    num_file += 1
-    while num_file < (pensettings.num_servers - 1):
-        multi_settings[num_file] = Settings(settings)
-        multi_settings[num_file].config = create_config_file(pensettings,
-                config, num_file, {'cronfile': False, 'webfile': False})
-        num_file += 1
-
-    # Create file that contain web config
-    multi_settings[num_file] = Settings(settings)
-    multi_settings[num_file].config = create_config_file(pensettings, config,
-            num_file, {'cronfile': False, 'webfile': True})
-
-    # reedit the differents settings needed
-    num_file = 0
-    while num_file < pensettings.num_servers:
-        config = load_config(multi_settings[num_file].config,
-            multi_settings[num_file])
-        num_file += 1
-
-    return multi_settings
-
-def start_multi(pensettings, multi_settings):
-    for settings in multi_settings:
-        start(settings)
-    for penport, penvals in pensettings.penconfs.iteritems():
-        call = ["/usr/bin/pen", pensettings.round_robin,  "-p", penvals.pidfile,
-                "-C", penvals.ctrl, penport]
-        if pensettings.cron_alone:
-            penvals.ports.pop(0)
-        call.extend(["%s:%s:%s" % (penvals.host, port, pensettings.max_con) for port in penvals.ports])
-        subprocess.call(call)
-
-def stop_multi(pensettings, multi_settings):
-    for penport, penvals in pensettings.penconfs.iteritems():
-        stop(penvals.pidfile)
-    for settings in multi_settings:
-        stop(settings.pidfile)
-        # try:
-        #     os.remove(settings.config)
-        # except OSError:
-        #     print "Error trying to remove config file: %s" % settings.config
-
 root = os.path.dirname(sys.argv[0])
 # If the path contains 'utils', it's probably being executed from the
 # clone of the utils repository in the project which is expected to be in
@@ -669,10 +553,7 @@ settings.root = root
 if settings.verbose:
     print "Root: %s" % root
 
-pensettings = Settings()
-pensettings.multi_port = False
-
-config = load_config(settings.config, settings, pensettings)
+config = load_config(settings.config, settings)
 
 if settings.action == 'ps':
     ps()
@@ -694,9 +575,6 @@ if settings.action == 'config_web':
     except IOError:
         sys.exit(255)
 
-if 'multi_port' in pensettings and pensettings.multi_port:
-    multi_settings = create_multi_config_files(config, pensettings, settings)
-
 if settings.action in ('start', 'restart', 'krestart'):
     if os.path.exists('doc/user'):
         fork_and_call(['make', 'html'], cwd='doc/user', logfile='doc.log')
@@ -707,10 +585,7 @@ if settings.action in ('stop', 'restart', 'krestart', 'stopserver',
         'restartserver', 'stopweb', 'restartweb'):
     if settings.action in ('stop', 'restart', 'krestart', 'stopserver',
             'restartserver'):
-        if pensettings.multi_port:
-            stop_multi(pensettings, multi_settings)
-        else:
-            stop(settings.pidfile)
+        stop(settings.pidfile)
     if settings.action in ('stop', 'restart', 'krestart', 'stopweb',
             'restartweb'):
         stop(settings.pidfile_web, warning=False)
@@ -724,11 +599,7 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
         'restartserver', 'startweb', 'restartweb'):
     if settings.action in ('start', 'restart', 'krestart', 'startserver',
             'restartserver'):
-        if pensettings.multi_port:
-            for settings in multi_settings:
-                backup_and_remove(settings.logfile)
-        else:
-            backup_and_remove(settings.logfile)
+        backup_and_remove(settings.logfile)
     if settings.action in ('start', 'restart', 'krestart', 'startweb',
             'restartweb'):
         backup_and_remove(settings.logfile_web)
@@ -737,10 +608,7 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
         'restartserver', 'startweb', 'restartweb'):
     if settings.action in ('start', 'restart', 'krestart', 'startserver',
             'restartserver'):
-        if pensettings.multi_port:
-            start_multi(pensettings, multi_settings)
-        else:
-            start(settings)
+        start(settings)
     if settings.action in ('start', 'restart', 'krestart', 'startweb',
             'restartweb'):
         start_web(settings)
@@ -748,10 +616,7 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
     if settings.tail:
         # Ensure server.log has been created before executing 'tail'
         time.sleep(1)
-        if pensettings.multi_port:
-            tail_out = tail(multi_settings[0].logfile, multi_settings)
-        else:
-            tail_out = tail(settings.logfile, settings)
+        tail_out = tail(settings.logfile, settings)
 
         if not tail_out:
             settings = parse_arguments(sys.argv, root, False)
@@ -760,10 +625,7 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
             tail(settings.logfile, settings)
 
 if settings.action == 'status':
-    if pensettings.multi_port:
-        tail(multi_settings[0].logfile, multi_settinmgs)
-    else:
-        tail(settings.logfile, settings)
+    tail(settings.logfile, settings)
 
 if settings.action == 'status_web':
     tail(settings.logfile_web, settings)
