@@ -391,11 +391,15 @@ def load_config(filename, settings):
         for (name, value) in parser.items(section):
             values['%s.%s' % (section, name)] = value
 
-    if values.get('general.dev'):
+    if 'generl.dev' in values and values['general.dev']:
         settings.dev = '--dev'
+    else:
+        settings.dev = False
 
-    if values.get('general.cron'):
+    if 'general.cron' in values and values['general.cron']:
         settings.cron = '--cron'
+    else:
+        settings.cron = False
 
     if values.get('database.uri') and not settings.database:
         parse = urlparse(values.get('database.uri'))
@@ -447,6 +451,10 @@ def start(settings):
         call += ['--log-level', 'debug']
     elif settings.debug_rpc:
         call += ['--log-level', 'debug_rpc']
+    if settings.dev:
+        call += [settings.dev]
+    if settings.cron:
+        call += [settings.cron]
 
     call += settings.extra_arguments
 
