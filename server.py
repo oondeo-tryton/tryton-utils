@@ -629,6 +629,7 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
         if not tail_out:
             settings = parse_arguments(sys.argv, root, False)
             settings.root = root
+            config = load_config(settings.config, settings)
             start(settings)
             tail(settings.logfile, settings)
 
