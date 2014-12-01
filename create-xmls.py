@@ -66,8 +66,6 @@ logger = logging.getLogger('create_xmls')
 options, module_name = parse_arguments(sys.argv)
 
 
-from trytond.config import CONFIG
-CONFIG['db_type'] = 'sqlite'
 os.environ['DB_NAME'] = ':memory:'
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import DB_NAME, USER, CONTEXT
@@ -264,8 +262,10 @@ def generate_menus(module_name, model):
 
 
 def create_xml(filename, module_name, model_names):
-    output = ''
-    output += '<?xml version="1.0" encoding="utf-8"?>\n'
+    output = '''\
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The COPYRIGHT file at the top level of this repository contains the full
+     copyright notices and license terms. -->\n'''
     output += '<tryton>\n'
     output += '    <data>\n'
     menus_output = ''
