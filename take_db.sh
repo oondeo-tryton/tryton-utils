@@ -99,7 +99,9 @@ backup_data="$prefix.data.backup"
 backup_all="$prefix.backup"
 backup_all_7z="$prefix.backup.7z"
 
-exclude_table="--exclude-table=ir_attachment --exclude-table=nan_document --exclude-table=ir_documentation_screenshot --exclude-table=audittrail_log --exclude-table=audittrail_log_line --exclude-table=audittail_rules_users --exclude-table=audittrail_rule"
+# OLD from OpenERP
+# exclude_table="--exclude-table=ir_attachment --exclude-table=nan_document --exclude-table=ir_documentation_screenshot --exclude-table=audittrail_log --exclude-table=audittrail_log_line --exclude-table=audittail_rules_users --exclude-table=audittrail_rule"
+exclude_table=""
 
 if [ $full_backup -eq 1 ]; then
     echo "#######   CREATING A FULL BACKUP OF THE $db DATABASE FROM $host_from HOST...   #######"
