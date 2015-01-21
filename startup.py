@@ -61,8 +61,8 @@ def parse_arguments():
 
 
 def connect_database(database, password='admin', database_type='postgresql'):
-    return pconfig.set_trytond(database, database_type=database_type,
-        password=password, config_file='trytond/etc/trytond.conf')
+    return pconfig.set_trytond(database, password=password,
+        config_file='trytond.conf')
 
 
 def set_active_languages(config, lang_codes=None):
