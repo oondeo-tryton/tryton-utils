@@ -548,6 +548,7 @@ def create_product_category(name, parent=None, account_parent=False,
         account_expense=None, account_revenue=None, taxes_parent=False,
         customer_taxes=None, supplier_taxes=None):
     ProductCategory = Model.get('product.category')
+    Tax = Model.get('account.tax')
 
     categories = ProductCategory.find([
                 ('name', '=', name),
@@ -561,8 +562,11 @@ def create_product_category(name, parent=None, account_parent=False,
     category.account_expense = account_expense
     category.account_revenue = account_revenue
     category.taxes_parent = taxes_parent
-    category.customer_taxes.extend(customer_taxes)
-    category.supplier_taxes.extend(supplier_taxes)
+    if not taxes_parent:
+        for ct in customer_taxes:
+            category.customer_taxes.append(Tax(ct.id))
+        for st in supplier_taxes:
+            category.supplier_taxes.append(Tax(st.id))
     category.save()
     return category
 
