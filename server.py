@@ -391,7 +391,7 @@ def load_config(filename, settings):
         for (name, value) in parser.items(section):
             values['%s.%s' % (section, name)] = value
 
-    if 'generl.dev' in values and values['general.dev']:
+    if 'general.dev' in values and values['general.dev']:
         settings.dev = '--dev'
     else:
         settings.dev = False
