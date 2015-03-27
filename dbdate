@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# This script will usually have to be executed as postgres user and can be
+# used to get the date at which the given database was created.
+
+if [ -z "$1" ]; then
+    echo "Syntax: $0 database"
+    exit 1
+fi
+
+OID=$(psql -t -c "SELECT oid FROM pg_database WHERE datname = '$1'" template1 | tr -d '[[:space:]]')
+
+PGDIR=/var/lib/postgresql/*/main/base
+
+ls -lt $PGDIR/$OID/PG_VERSION
