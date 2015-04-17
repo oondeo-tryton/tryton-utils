@@ -62,8 +62,8 @@ if __name__ == "__main__":
     settings = parse_arguments(sys.argv[1:])
 
     if settings.database:
-        config.set_trytond(database_type='postgresql',
-            database_name=settings.database)
+        config.set_trytond(
+            database=settings.database)
     else:
         config.set_xmlrpc(settings.url)
 
