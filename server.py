@@ -29,6 +29,7 @@ import shutil
 import datetime
 import glob
 import locale
+import signal
 from urlparse import urlparse
 
 
@@ -36,7 +37,8 @@ from urlparse import urlparse
 # stop() and before the next start()
 ACTIONS = ('start', 'stop', 'restart', 'startserver', 'stopserver',
     'restartserver', 'startweb', 'stopweb', 'restartweb', 'status',
-    'status_web', 'kill', 'krestart', 'config', 'config_web', 'ps', 'db')
+    'status_web', 'kill', 'krestart', 'config', 'config_web', 'ps', 'db',
+    'top')
 
 # Start Printing Tables
 # http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
@@ -279,7 +281,7 @@ def parse_arguments(arguments, root, extra=True):
     parser = optparse.OptionParser(usage='server.py [options] start|stop|'
         'restart|startserver|stopserver|restartserver|startweb|stopweb|'
         'restartweb|status|status_web|kill|krestart|config|config_web|'
-        'ps|db [database [-- parameters]]')
+        'ps|db|top [database [-- parameters]]')
     parser.add_option('', '--config', dest='config',
         help='(it will search: server-config_name.cfg')
     parser.add_option('', '--config-file', dest='config_file', help='')
@@ -391,12 +393,12 @@ def load_config(filename, settings):
         for (name, value) in parser.items(section):
             values['%s.%s' % (section, name)] = value
 
-    if 'general.dev' in values and values['general.dev']:
+    if 'general.dev' in values and values['general.dev'].lower() != 'false':
         settings.dev = '--dev'
     else:
         settings.dev = False
 
-    if 'general.cron' in values and values['general.cron']:
+    if 'general.cron' in values and values['general.cron'].lower() != 'false':
         settings.cron = '--cron'
     else:
         settings.cron = False
@@ -546,6 +548,17 @@ def tail(filename, settings):
         file.close()
     return True
 
+def top(pidfile):
+    pid = open(pidfile, 'r').read()
+    try:
+        pid = int(pid)
+    except ValueError:
+        print "Invalid pid number: %s" % pid
+        return
+    while True:
+        os.kill(pid, signal.SIGUSR1)
+        time.sleep(1)
+
 root = os.path.dirname(sys.argv[0])
 # If the path contains 'utils', it's probably being executed from the
 # clone of the utils repository in the project which is expected to be in
@@ -568,6 +581,9 @@ if settings.action == 'ps':
 
 if settings.action == 'db':
     db()
+
+if settings.action == 'top':
+    top(settings.pidfile)
 
 if settings.action == 'config':
     try:
