@@ -120,7 +120,7 @@ def processes(filter=None):
     # TODO: Filter by user
     me = getpass.getuser()
     processes = []
-    for process in psutil.get_process_list():
+    for process in psutil.process_iter():
         try:
             if isinstance(process.cmdline, (tuple, list)):
                 cmdline = process.cmdline
@@ -445,6 +445,7 @@ def prepare_multiprocess(parser, values, filename, workers):
         worker_processes = re.match("[0-9]+", worker_processes).group(0)
         context = {
             'worker_processes': worker_processes,
+            'pid': '/tmp/nginx.%s.pid' % ports['main'],
             'server_name': get_fqdn(),
             'servers': [],
             'port': ports['main'],
@@ -454,14 +455,14 @@ def prepare_multiprocess(parser, values, filename, workers):
                     'host': 'localhost',
                     'port': port,
                 })
-        if 'database.privatekey' in values:
+        if 'ssl.privatekey' in values:
             context['privatekey'] = ("ssl_certificate_key %s;"
-                % values['database.privatekey'])
+                % values['ssl.privatekey'])
         else:
             context['privatekey'] = None
-        if 'database.certificate' in values:
+        if 'ssl.certificate' in values:
             context['certificate'] = ("ssl_certificate %s;"
-                % values['database.certificate'])
+                % values['ssl.certificate'])
         else:
             context['certificate'] = None
 
@@ -580,8 +581,8 @@ def start(settings):
 
 def start_nginx(config_nginx):
     for nginx in config_nginx:
-        ngixcall = ('/usr/sbin/nginx', '-c', nginx)
-        subprocess.Popen(ngixcall, stdout=None, stderr=None)
+        nginxcall = ('/usr/sbin/nginx', '-c', nginx)
+        subprocess.Popen(nginxcall, stdout=None, stderr=None)
 
 def stop(pidfiles, warning=True):
     """
