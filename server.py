@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 ##############################################################################
-# Copyright (C) 2013 NaN·tic
+# Copyright (C) 2015 NaN·tic
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##############################################################################
 
-
 import ConfigParser
 import optparse
 import os
@@ -25,20 +24,16 @@ import socket
 import subprocess
 import sys
 import time
-import shutil
-import datetime
-import glob
 import locale
 import signal
 from urlparse import urlparse
-
+import re
+from jinja2 import Template as Jinja2Template
 
 # krestart is the same as restart but will execute kill after
 # stop() and before the next start()
-ACTIONS = ('start', 'stop', 'restart', 'startserver', 'stopserver',
-    'restartserver', 'startweb', 'stopweb', 'restartweb', 'status',
-    'status_web', 'kill', 'krestart', 'config', 'config_web', 'ps', 'db',
-    'top')
+ACTIONS = ('start', 'stop', 'restart', 'status', 'kill', 'krestart', 'config',
+    'ps', 'db', 'top')
 
 # Start Printing Tables
 # http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
@@ -78,22 +73,10 @@ def pprint_table(table):
             print col,
         print
 
-# End Printing Tables
-
 def transpose(data):
     if not data:
         return data
     return [[row[i] for row in data] for i in xrange(len(data[0]))]
-
-def backup_and_remove(filename):
-    # Remove old backups
-    for f in glob.glob('%s.*' % filename):
-        os.remove(f)
-    timestamp = datetime.datetime.today().strftime('%Y-%m-%d_%H:%M:%S')
-    destfile = '%s.%s' % (filename, timestamp)
-    if os.path.exists(filename):
-        shutil.move(filename, destfile)
-    return destfile
 
 def check_output(*args):
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
@@ -185,7 +168,7 @@ def kill():
     Kills all trytond and JasperServer processes
     """
     kill_process('trytond', 'trytond')
-    kill_process('pen -p', 'pen')
+    kill_process('nginx -c', 'nginx')
     kill_process('java -Djava.awt.headless=true '
         'com.nantic.jasperreports.JasperServer', 'jasper')
 
@@ -233,7 +216,7 @@ def db():
     #        line.append('%s=%s' % (field, record[field]))
     #    print ' '.join(line)
 
-def fork_and_call(call, pidfile=None, logfile=None, cwd=None, env=None):
+def fork_and_call(call, pidfile=None, logfile=None, cwd=None):
     # do the UNIX double-fork magic, see Stevens' "Advanced
     # Programming in the UNIX Environment" for details (ISBN 0201563177)
     try:
@@ -279,21 +262,16 @@ class Settings(dict):
 
 def parse_arguments(arguments, root, extra=True):
     parser = optparse.OptionParser(usage='server.py [options] start|stop|'
-        'restart|startserver|stopserver|restartserver|startweb|stopweb|'
-        'restartweb|status|status_web|kill|krestart|config|config_web|'
-        'ps|db|top [database [-- parameters]]')
+        'restart|status|kill|krestart|config|ps|db|top '
+        '[database [-- parameters]]')
     parser.add_option('', '--config', dest='config',
         help='(it will search: server-config_name.cfg')
     parser.add_option('', '--config-file', dest='config_file', help='')
-    parser.add_option('', '--debug', action='store_true', help='')
-    parser.add_option('', '--debug-rpc', action='store_true', help='')
     parser.add_option('', '--no-tail', action='store_true', help='')
     parser.add_option('', '--server-help', action='store_true', help='')
-    parser.add_option('', '--verbose', action='store_true', help='')
-    parser.add_option('', '--clear', action='store_true', help='')
-    #parser.add_option('', '--clean-server-log', action='store_true', help='')
-    #parser.add_option('', '--clean-web-server-log', action='store_true',
-    #    help='')
+    parser.add_option('', '--verbose', action='store_true', help='This verbose'
+        ' is only for the server.py execution, it is not the tryton verbose, '
+        'it has to be deffined in the server config file.')
     (option, arguments) = parser.parse_args(arguments)
     # Remove first argument because it's application name
     arguments.pop(0)
@@ -309,8 +287,6 @@ def parse_arguments(arguments, root, extra=True):
         print '--config and --config-file options are mutually exclusive.'
         sys.exit(1)
 
-    settings.clear = option.clear
-
     fqdn = get_fqdn()
     if option.config:
         filename = 'server-%s.cfg' % option.config
@@ -324,13 +300,8 @@ def parse_arguments(arguments, root, extra=True):
 
     settings.tail = not option.no_tail
 
-    settings.debug = option.debug
-    settings.debug_rpc = option.debug_rpc
-
     if settings.verbose:
         print "Configuration file: %s" % settings.config
-
-    settings.config_web = os.path.join(root, 'web-%s.cfg' % fqdn)
 
     if not arguments:
         print 'One action is required.'
@@ -357,11 +328,9 @@ def parse_arguments(arguments, root, extra=True):
         else:
             settings.database = None
 
-    settings.pidfile = os.path.join(root, 'trytond.pid')
-    settings.pidfile_web = os.path.join(root, 'openerp-web.pid')
+    settings.pidfiles = [os.path.join(root, 'trytond.pid')]
     settings.pidfile_jasper = os.path.join(root, 'tryton-jasper.pid')
     settings.logfile = os.path.join(root, 'server.log')
-    settings.logfile_web = os.path.join(root, 'web_server.log')
 
     settings.extra_arguments = []
     if extra:
@@ -393,30 +362,142 @@ def load_config(filename, settings):
         for (name, value) in parser.items(section):
             values['%s.%s' % (section, name)] = value
 
-    if 'general.dev' in values and values['general.dev'].lower() != 'false':
+    if 'optional.dev' in values and values['optional.dev'].lower() != 'false':
         settings.dev = '--dev'
     else:
         settings.dev = False
 
-    if 'general.cron' in values and values['general.cron'].lower() != 'false':
+    if ('optional.cron' in values and
+        values['optional.cron'].lower() != 'false'):
         settings.cron = '--cron'
     else:
         settings.cron = False
+
+    if ('optional.verbose' in values and
+        values['optional.verbose'].lower() != 'false'):
+        settings.verb = '--verbose'
+    else:
+        settings.verb = False
+
+    if 'optional.logconf' in values:
+        settings.logconf = values.get('optional.logconf')
+        newparser = ConfigParser.ConfigParser()
+        newparser.read(settings.logconf)
+        args = newparser.get('handler_trfhand', 'args')
+        settings.logfile = re.match("\('(.*)',.*$", args).group(1)
+    else:
+        settings.logconf = False
+
+    if 'optional.nginx_tmpl' in values:
+        settings.nginx_tmpl = values.get('optional.nginx_tmpl')
 
     if values.get('database.uri') and not settings.database:
         parse = urlparse(values.get('database.uri'))
         settings.database = parse.path[1:]
 
-    if values.get('general.server_pidfile'):
-        settings.pidfile = values.get('options.server_pidfile')
+    if values.get('optional.pidfile'):
+        settings.pidfiles = [values.get('optional.pidfile')]
 
-    if values.get('general.server_logfile'):
-        settings.logfile = values.get('options.server_logfile')
+    if values.get('optional.jasperpid'):
+        settings.pidfile_jasper = values.get('optional.jasperpid')
 
-    if values.get('general.jasperpid'):
-        settings.pidfile_jasper = values.get('options.jasperpid')
+    if (values.get('optional.workers', 'False') != 'False' and
+        values.get('optional.nginx_tmpl', 'False') != 'False'):
+        try:
+            workers = int(values['optional.workers'])
+        except:
+            print "Workers are bad deffined. It has to be a number or 'False'"
+            sys.exit(1)
+
+        (settings.config_multiserver, settings.config_nginx) = (
+            prepare_multiprocess(parser, values, filename, workers))
+
+        if not values.get('optional.pidfile'):
+            print "[MULTIPROCESS] Pid file path deffinition is needed."
+            sys.exit(1)
+        settings.pidfiles = []
+        w = 1
+        while w <= workers:
+            settings.pidfiles.append(
+                "%s.%s" % (values.get('optional.pidfile'), w))
+            w += 1
+    else:
+        settings.config_multiserver = False
+        settings.config_nginx = False
 
     return values
+
+def prepare_multiprocess(parser, values, filename, workers):
+    filename = os.path.basename(filename)
+    ports = take_free_port(workers * 3)
+    used_ports = {}
+    configfile_names = []
+    nginx_files = []
+    w = 1
+    while w <= workers:
+        configfile_name = "/tmp/%s.%s" % (filename, w)
+        create_config_file(parser, ports, configfile_name, used_ports)
+        configfile_names.append(configfile_name)
+        w += 1
+    for (section, ports) in used_ports.items():
+        worker_processes = subprocess.check_output(
+            "grep processor /proc/cpuinfo | wc -l", shell=True)
+        worker_processes = re.match("[0-9]+", worker_processes).group(0)
+        context = {
+            'worker_processes': worker_processes,
+            'server_name': get_fqdn(),
+            'servers': [],
+            'port': ports['main'],
+            }
+        for port in ports['processes']:
+            context['servers'].append({
+                    'host': 'localhost',
+                    'port': port,
+                })
+        if 'database.privatekey' in values:
+            context['privatekey'] = ("ssl_certificate_key %s;"
+                % values['database.privatekey'])
+        else:
+            context['privatekey'] = None
+        if 'database.certificate' in values:
+            context['certificate'] = ("ssl_certificate %s;"
+                % values['database.certificate'])
+        else:
+            context['certificate'] = None
+
+        nginx_file = "/tmp/nginx.conf.%s" % ports['main']
+        create_nginx_file(nginx_file, values['optional.nginx_tmpl'], context)
+        nginx_files.append(nginx_file)
+
+    return configfile_names, nginx_files
+
+def create_config_file(parser, ports, configfile_name, used_ports):
+    config = ConfigParser.RawConfigParser()
+    for section in parser.sections():
+        if section != 'optional':
+            config.add_section(section)
+            for (name, value) in parser.items(section):
+                if (name == 'listen' and
+                    section in ('jsonrpc', 'xmlrpc', 'webdab')):
+                    host, port = value.split(':')
+                    if section not in used_ports:
+                        used_ports[section] = {
+                            'main': port,
+                            'processes': []
+                            }
+                    port2use = ports.pop()
+                    used_ports[section]['processes'].append(port2use)
+                    value = "%s:%s" % (host, port2use)
+                config.set(section, name, value)
+    with open(configfile_name, 'wb') as configfile:
+        config.write(configfile)
+
+def create_nginx_file(nginx_file, nginx_tmpl, context):
+    with open(nginx_tmpl, 'rb') as nf:
+        t = nf.read()
+    template = Jinja2Template(t)
+    with open(nginx_file, 'wb') as configfile:
+        configfile.write(template.render(context).encode('utf-8'))
 
 def find_directory(root, directories):
     for directory in directories:
@@ -427,7 +508,7 @@ def find_directory(root, directories):
 
 def start(settings):
     """
-    Starts OpenERP server.
+    Starts Tryton server.
     """
 
     server_directories = [
@@ -441,90 +522,101 @@ def start(settings):
     # Set executable name
     call = ['python', '-u', os.path.join(path, 'bin', 'trytond')]
 
-    if os.path.exists(settings.config):
-        call += ['-c', settings.config]
+    if settings.logconf:
+        call += ['--logconf', settings.logconf]
+
+    if (not settings.config_multiserver or (settings.config_multiserver and
+            settings.extra_arguments and ('-u' in settings.extra_argumentsor
+            or '--all' in settings.extra_arguments))):
+        if os.path.exists(settings.config):
+            call += ['-c', settings.config]
+        else:
+            # If configuration file does not exist try to start the server anyway
+            print 'Configuration file not found: %s' % settings.config
+
+        if settings.database:
+            call += ['--database', settings.database]
+        if settings.dev:
+            call += [settings.dev]
+        if settings.cron:
+            call += [settings.cron]
+        if settings.verb:
+            call += [settings.verb]
+
+        call += settings.extra_arguments
+
+        if settings.verbose:
+            print "Calling '%s'" % ' '.join(call)
+
+        # Create pidfile ourselves because if Tryton server crashes on start it may
+        # not have created the file yet while keeping the process running.
+        fork_and_call(call, pidfile=settings.pidfiles[0],
+            logfile=settings.logfile)
     else:
-        # If configuration file does not exist try to start the server anyway
-        print 'Configuration file not found: %s' % settings.config
+        first = True
+        for config in settings.config_multiserver:
+            multicall = call[:]
+            w = int(config.rpartition('.')[2]) - 1
+            if os.path.exists(config):
+                multicall += ['-c', config]
+            else:
+                print ('[MULTIPROCESS] Configuration file not found: %s'
+                    % config)
+                sys.exit(1)
 
-    if settings.database:
-        call += ['--database', settings.database]
-    if settings.debug:
-        call += ['--log-level', 'debug']
-    elif settings.debug_rpc:
-        call += ['--log-level', 'debug_rpc']
-    if settings.dev:
-        call += [settings.dev]
-    if settings.cron:
-        call += [settings.cron]
+            if settings.database:
+                multicall += ['--database', settings.database]
+            if first:
+                first = False
+                if settings.cron:
+                    multicall += [settings.cron]
 
-    call += settings.extra_arguments
+            if settings.verbose:
+                print "Calling '%s'" % ' '.join(multicall)
 
-    if settings.verbose:
-        print "Calling '%s'" % ' '.join(call)
+            fork_and_call(multicall, pidfile=settings.pidfiles[w],
+                logfile=settings.logfile)
+        start_nginx(settings.config_nginx)
 
-    # Create pidfile ourselves because if OpenERP server crashes on start it may
-    # not have created the file yet while keeping the process running.
-    fork_and_call(call, settings.pidfile, settings.logfile, env={
-            'PYTHONPATH': 'nereid_app',
-            })
+def start_nginx(config_nginx):
+    for nginx in config_nginx:
+        ngixcall = ('/usr/sbin/nginx', '-c', nginx)
+        subprocess.Popen(ngixcall, stdout=None, stderr=None)
 
-def start_web(settings):
+def stop(pidfiles, warning=True):
     """
-    Starts OpenERP's web client using settings.config_web filename.
-    """
-    # Only start web server if configuration file exists
-    if not os.path.exists(settings.config_web):
-        return
-
-    server_directories = [
-        'nereid',
-        ]
-    path = find_directory(settings.root, server_directories)
-    if not path:
-        print 'Could not find server directory.'
-        sys.exit(1)
-
-    # Set executable name
-    call = [os.path.join(path, 'openerp-web.py')]
-
-    call += ['-c', settings.config_web]
-
-    if settings.verbose:
-        print "Calling '%s'" % ' '.join(call)
-
-    #output = open(settings.logfile_web, 'a')
-
-    fork_and_call(call, settings.pidfile_web, settings.logfile_web)
-
-def stop(pidfile, warning=True):
-    """
-    Stops OpenERP's application server or PEN servers.
+    Stops Tryton's application server/s.
 
     If warning=True it will show a message to the user when pid file does
     not exist.
     """
-    if not pidfile:
-        return
-    if not os.path.exists(pidfile):
-        if warning:
-            print 'Pid file %s does not exist.' % pidfile
-        return
-    pid = open(pidfile, 'r').read()
-    try:
-        pid = int(pid)
-    except ValueError:
-        print "Invalid pid number: %s" % pid
-        return
-    try:
-        os.kill(pid, 9)
-    except OSError:
-        print "Could not kill process with pid %d. Probably it's no longer running." % pid
-    finally:
+    for pidfile in pidfiles:
+        if not pidfile:
+            continue
+        if not os.path.exists(pidfile):
+            if warning:
+                print 'Pid file %s does not exist.' % pidfile
+            continue
+        pid = open(pidfile, 'r').read()
         try:
-            os.remove(pidfile)
+            pid = int(pid)
+        except ValueError:
+            continue
+        try:
+            os.kill(pid, 9)
         except OSError:
-            print "Error trying to remove pidfile %s" % pidfile
+            print ("Could not kill process with pid %d. Probably it's no "
+                "longer running." % pid)
+        finally:
+            try:
+                os.remove(pidfile)
+            except OSError:
+                print "Error trying to remove pidfile %s" % pidfile
+
+def stop_nginx(config_nginx):
+    for nginx in config_nginx:
+        call = ('/usr/sbin/nginx', '-c', nginx, '-s', 'stop')
+        subprocess.Popen(call, stdout=None, stderr=None)
 
 def tail(filename, settings):
     file = open(filename, 'r')
@@ -592,50 +684,24 @@ if settings.action == 'config':
     except IOError:
         sys.exit(255)
 
-if settings.action == 'config_web':
-    try:
-        print open(settings.config_web, 'r').read()
-        sys.exit(0)
-    except IOError:
-        sys.exit(255)
-
 if settings.action in ('start', 'restart', 'krestart'):
     if os.path.exists('doc/user'):
         fork_and_call(['make', 'html'], cwd='doc/user', logfile='doc.log')
     else:
         print "No user documentation available."
 
-if settings.action in ('stop', 'restart', 'krestart', 'stopserver',
-        'restartserver', 'stopweb', 'restartweb'):
-    if settings.action in ('stop', 'restart', 'krestart', 'stopserver',
-            'restartserver'):
-        stop(settings.pidfile)
-    if settings.action in ('stop', 'restart', 'krestart', 'stopweb',
-            'restartweb'):
-        stop(settings.pidfile_web, warning=False)
-    stop(settings.pidfile_jasper, warning=False)
+if settings.action in ('stop', 'restart', 'krestart'):
+    stop(settings.pidfiles)
+    stop([settings.pidfile_jasper], warning=False)
     kill_process('celery', 'celery')
+    if settings.config_nginx:
+        stop_nginx(settings.config_nginx)
 
 if settings.action in ('kill', 'krestart'):
     kill()
 
-if settings.action in ('start', 'restart', 'krestart', 'startserver',
-        'restartserver', 'startweb', 'restartweb'):
-    if settings.action in ('start', 'restart', 'krestart', 'startserver',
-            'restartserver'):
-        backup_and_remove(settings.logfile)
-    if settings.action in ('start', 'restart', 'krestart', 'startweb',
-            'restartweb'):
-        backup_and_remove(settings.logfile_web)
-
-if settings.action in ('start', 'restart', 'krestart', 'startserver',
-        'restartserver', 'startweb', 'restartweb'):
-    if settings.action in ('start', 'restart', 'krestart', 'startserver',
-            'restartserver'):
-        start(settings)
-    if settings.action in ('start', 'restart', 'krestart', 'startweb',
-            'restartweb'):
-        start_web(settings)
+if settings.action in ('start', 'restart', 'krestart'):
+    start(settings)
 
     if settings.tail:
         # Ensure server.log has been created before executing 'tail'
@@ -651,6 +717,3 @@ if settings.action in ('start', 'restart', 'krestart', 'startserver',
 
 if settings.action == 'status':
     tail(settings.logfile, settings)
-
-if settings.action == 'status_web':
-    tail(settings.logfile_web, settings)
