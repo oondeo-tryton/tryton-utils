@@ -527,7 +527,7 @@ def start(settings):
         call += ['--logconf', settings.logconf]
 
     if (not settings.config_multiserver or (settings.config_multiserver and
-            settings.extra_arguments and ('-u' in settings.extra_argumentsor
+            settings.extra_arguments and ('-u' in settings.extra_arguments
             or '--all' in settings.extra_arguments))):
         if os.path.exists(settings.config):
             call += ['-c', settings.config]
