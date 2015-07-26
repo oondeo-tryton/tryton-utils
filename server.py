@@ -514,6 +514,7 @@ def start(settings):
 
     server_directories = [
         'trytond',
+        '.virtualenvs/monitoring',
         ]
     path = find_directory(settings.root, server_directories)
     if not path:
