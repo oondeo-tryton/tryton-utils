@@ -676,7 +676,12 @@ settings.root = root
 if settings.verbose:
     print "Root: %s" % root
 
-config = load_config(settings.config, settings)
+if settings.action == 'config':
+    try:
+        print open(settings.config, 'r').read()
+        sys.exit(0)
+    except IOError:
+        sys.exit(255)
 
 if settings.action == 'ps':
     ps()
@@ -687,12 +692,7 @@ if settings.action == 'db':
 if settings.action == 'top':
     top(settings.pidfile)
 
-if settings.action == 'config':
-    try:
-        print open(settings.config, 'r').read()
-        sys.exit(0)
-    except IOError:
-        sys.exit(255)
+config = load_config(settings.config, settings)
 
 if settings.action in ('start', 'restart', 'krestart'):
     if os.path.exists('doc/user'):
