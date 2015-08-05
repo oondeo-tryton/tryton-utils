@@ -28,7 +28,12 @@ import locale
 import signal
 from urlparse import urlparse
 import re
-from jinja2 import Template as Jinja2Template
+try:
+    from jinja2 import Template as Jinja2Template
+    jinja2_loaded = True
+except ImportError:
+    jinja2_loaded = False
+
 
 # krestart is the same as restart but will execute kill after
 # stop() and before the next start()
@@ -494,6 +499,9 @@ def create_config_file(parser, ports, configfile_name, used_ports):
         config.write(configfile)
 
 def create_nginx_file(nginx_file, nginx_tmpl, context):
+    if not jinja2_loaded:
+        print "Could not found Jinja2 module"
+        sys.exit(1)
     with open(nginx_tmpl, 'rb') as nf:
         t = nf.read()
     template = Jinja2Template(t)
