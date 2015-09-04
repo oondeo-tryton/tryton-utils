@@ -205,10 +205,10 @@ else
         echo "psql -p $pgsql_dest_port $prefix -c \"drop table if exists $tmpdb;\"" >> $restore_db
     fi
 fi
-echo "echo \"Disabling imap and smtp servers...\"" >> $restoredb
-echo "psql -p $psql_dest_port $prefix -c \"update imap_server set state = 'draft';\"" >> $restoredb
-echo "psql -p $psql_dest_port $prefix -c \"update smtp_server set state = 'draft';\"" >> $restoredb
-echo "psql -p $psql_dest_port $prefix -c \"update ir_cron set active = False;\"" >> $restoredb
+echo "echo \"Disabling imap and smtp servers...\""
+echo "psql -p $psql_dest_port $prefix -c \"update imap_server set state = 'draft';\" >> $restoredb"
+echo "psql -p $psql_dest_port $prefix -c \"update smtp_server set state = 'draft';\" >> $restoredb"
+echo "psql -p $psql_dest_port $prefix -c \"update ir_cron set active = False;\" >> $restoredb"
 
 ## change the admin password to admin
 #echo "psql -p $pgsql_dest_port $prefix -c \"update res_users set password = 'admin' where id = 1;\"" >> $restore_db
