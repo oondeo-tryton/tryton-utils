@@ -334,7 +334,7 @@ def parse_arguments(arguments, root, extra=True):
             settings.database = None
 
     settings.pidfiles = [os.path.join(root, 'trytond.pid')]
-    settings.pidfile_jasper = os.path.join(root, 'tryton-jasper.pid')
+    settings.pidfile_jasper = os.path.join(root, 'jasper.pid')
     settings.logfile = os.path.join(root, 'server.log')
 
     settings.extra_arguments = []
