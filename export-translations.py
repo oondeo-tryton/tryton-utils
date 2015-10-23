@@ -92,6 +92,8 @@ if __name__ == "__main__":
         translation_export.form.language = language
         translation_export.form.module = module
         translation_export.execute('export')
+        if not translation_export.form.file:
+            continue
         path = path + '/%s.po' % language.code
         f = open(path, 'w')
         try:
