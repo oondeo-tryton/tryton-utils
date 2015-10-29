@@ -29,5 +29,11 @@ ln -s utils/new-module.sh ..
 echo "create-xmls.py"
 ln -s utils/create-xmls.py ..
 
+echo "Dockerfile"
+ln -s utils/Dockerfile ..
+
+echo "docker-compose.yml"
+ln -s utils/docker-compose.yml ..
+
 echo "modules"
 ln -s trytond/trytond/modules/ ..

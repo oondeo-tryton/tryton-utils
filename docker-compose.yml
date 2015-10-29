@@ -1,0 +1,8 @@
+tryton:
+    build: .
+    ports:
+        - "8000:8000"
+    links:
+        - postgres
+postgres:
+    image: postgres
