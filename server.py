@@ -276,7 +276,7 @@ def parse_arguments(arguments, root, extra=True):
     parser.add_option('', '--server-help', action='store_true', help='')
     parser.add_option('', '--verbose', action='store_true', help='This verbose'
         ' is only for the server.py execution, it is not the tryton verbose, '
-        'it has to be deffined in the server config file.')
+        'it has to be defined in the server config file.')
     (option, arguments) = parser.parse_args(arguments)
     # Remove first argument because it's application name
     arguments.pop(0)
@@ -411,14 +411,14 @@ def load_config(filename, settings):
         try:
             workers = int(values['optional.workers'])
         except:
-            print "Workers are bad deffined. It has to be a number or 'False'"
+            print "Invalid workers value. It has to be a number or 'False'."
             sys.exit(1)
 
         (settings.config_multiserver, settings.config_nginx) = (
             prepare_multiprocess(parser, values, filename, workers))
 
         if not values.get('optional.pidfile'):
-            print "[MULTIPROCESS] Pid file path deffinition is needed."
+            print "[MULTIPROCESS] Pid file path definition is needed."
             sys.exit(1)
         settings.pidfiles = []
         w = 1
