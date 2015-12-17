@@ -408,6 +408,8 @@ def load_config(filename, settings):
 
     if (values.get('optional.workers', 'False') != 'False' and
         values.get('optional.nginx_tmpl', 'False') != 'False'):
+
+        settings.doc_port = values.get('optional.doc_port')
         try:
             workers = int(values['optional.workers'])
         except:
@@ -429,6 +431,7 @@ def load_config(filename, settings):
     else:
         settings.config_multiserver = False
         settings.config_nginx = False
+        settings.doc_port = False
 
     return values
 
@@ -454,6 +457,8 @@ def prepare_multiprocess(parser, values, filename, workers):
             'server_name': get_fqdn(),
             'servers': [],
             'port': ports['main'],
+            'doc_port': settings.doc_port,
+            'root': settings.root,
             }
         for port in ports['processes']:
             context['servers'].append({
