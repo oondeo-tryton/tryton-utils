@@ -35,5 +35,8 @@ ln -s utils/Dockerfile ..
 echo "docker-compose.yml"
 ln -s utils/docker-compose.yml ..
 
+echo "Vagrantfile"
+ln -s utils/Vagrantfile ..
+
 echo "modules"
 ln -s trytond/trytond/modules/ ..
