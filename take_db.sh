@@ -113,9 +113,9 @@ if [ $full_backup -eq 1 ]; then
         echo "#######   COMPRESSING THE $backup_all DB...   #######"
         /usr/bin/7z a /tmp/$backup_all_7z /tmp/$backup_all
     else
-        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --no-owner --file=$backup_all $db"
+        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --no-owner --file=backups/$backup_all $db"
         echo "#######   COMPRESSING THE $backup_all DB...   #######"
-        ssh $host_from "/usr/bin/7z a $backup_all_7z $backup_all"
+        ssh $host_from "/usr/bin/7z a $backup_all_7z backups/$backup_all"
     fi
 
     echo "#######   COPYING THE $backup_all_7z FILE FROM $host_from TO $dest_dir DIRECTORY OF $host_to...   #######"
@@ -145,14 +145,14 @@ else
     if [ "$host_from" == "localhost" ]; then
         pg_dump $pgsql_orig_user -p $pgsql_orig_port --schema-only --no-owner --file=/tmp/$backup_schema $db
     else
-        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --schema-only --no-owner --file=$backup_schema $db"
+        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --schema-only --no-owner --file=backups/$backup_schema $db"
     fi
 
     echo "#######   DUMPING THE DATA OF THE $db DATABASE FROM $host_from HOST...   #######"
     if [ "$host_from" == "localhost" ]; then
         pg_dump $pgsql_orig_user -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=/tmp/$backup_data $db
     else
-        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=$backup_data $db"
+        ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=backups/$backup_data $db"
     fi
 
     if [ $oscom -eq 1 ]; then
@@ -168,14 +168,14 @@ else
     if [ "$host_from" == "localhost" ]; then
         scp $limit /tmp/$backup_data $dest
     else
-        scp -3 $limit $host_from:./$backup_data $dest
+        scp -3 $limit $host_from:./backups/$backup_data $dest
     fi
 
     echo "#######   COPYING THE $backup_schema FILE FROM $host_from TO $dest_dir DIRECTORY OF $host_to...   #######"
     if [ "$host_from" == "localhost" ]; then
         scp $limit /tmp/$backup_schema $dest
     else
-        scp -3 $limit $host_from:./$backup_schema $dest
+        scp -3 $limit $host_from:./backups/$backup_schema $dest
     fi
 
     echo "#######   ALL IS DONE   #######"
