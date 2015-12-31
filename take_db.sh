@@ -9,7 +9,6 @@ pgsql_dest_port=5432
 pgsql_orig_user=""
 limit=""
 full_backup=0
-oscom=0
 date=`date +"%y%m%d"`
 dest_dir="/tmp"
 
@@ -51,8 +50,6 @@ while getopts O:D:d:p:P:u:l:f:oa x; do
         u) pgsql_orig_user="-U $OPTARG";;
         l) limit="-l $OPTARG";;
         f) dest_dir="$OPTARG";;
-        o) oscom=1
-           tmpdb="nan_tmp_product_product";;
         a) full_backup=1;;
         [?]) help;;
     esac
@@ -127,20 +124,6 @@ if [ $full_backup -eq 1 ]; then
 
     echo "#######   ALL IS DONE   #######"
 else
-    if [ $oscom -eq 1 ]; then
-        echo "#######   CREATING THE TEMPORALLY TABLE FOR THE COPY OF PRODUCTS...   #######"
-        if [ "$host_from" == "localhost" ]; then
-            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "drop table if exists $tmpdb;"
-            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "create table $tmpdb as select * from product_product;"
-            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "update $tmpdb set image_med = null, image_sm_3 = null, image_sm_2 = null, image_sm_5 = null, image_sm_1 = null, image_sm_4 = null, image_sm_6 = null, image_lrg = null, image_xl_5 = null, image_xl_6 = null, image_xl_4 = null, image_xl_3 = null, image_xl_2 = null, image_xl_1 = null;"
-        else
-            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"drop table if exists $tmpdb;\""""
-            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"create table $tmpdb as select * from product_product;\""""
-            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"update $tmpdb set image_med = null, image_sm_3 = null, image_sm_2 = null, image_sm_5 = null, image_sm_1 = null, image_sm_4 = null, image_sm_6 = null, image_lrg = null, image_xl_5 = null, image_xl_6 = null, image_xl_4 = null, image_xl_3 = null, image_xl_2 = null, image_xl_1 = null;\""""
-        fi
-        exclude_table="$exclude_table --exclude-table=product_product"
-    fi
-
     echo "#######   DUMPING THE SCHEMA OF THE $db DATABASE FROM $host_from HOST...   #######"
     if [ "$host_from" == "localhost" ]; then
         pg_dump $pgsql_orig_user -p $pgsql_orig_port --schema-only --no-owner --file=/tmp/$backup_schema $db
@@ -153,15 +136,6 @@ else
         pg_dump $pgsql_orig_user -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=/tmp/$backup_data $db
     else
         ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --format=c --data-only --no-owner --disable-triggers $exclude_table --file=backups/$backup_data $db"
-    fi
-
-    if [ $oscom -eq 1 ]; then
-        echo "#######   REMOVING THE TEMPORALLY TABLE CREATED FOR THE COPY OF PRODUCTS...   #######"
-        if [ "$host_from" == "localhost" ]; then
-            psql $pgsql_orig_user -p $pgsql_orig_port $db -c "drop table if exists $tmpdb;"
-        else
-            ssh $host_from "psql $pgsql_orig_user -p $pgsql_orig_port $db -c \"drop table if exists $tmpdb;\""
-        fi
     fi
 
     echo "#######   COPYING THE $backup_data FILE FROM $host_from TO $dest_dir DIRECTORY OF $host_to...   #######"
@@ -194,33 +168,15 @@ echo "echo \"#######   STARTING $db RESTORE INTO $prefix DB...   #######\"" >> $
 echo "createdb -p $pgsql_dest_port $prefix" >> $restore_db
 if [ $full_backup -eq 1 ]; then
     echo "/usr/bin/7z x $backup_all_7z" >> $restore_db
-    echo "psql -p $pgsql_dest_port $prefix < $backup_all" >> $restore_db
+    echo "psql -p $pgsql_dest_port $prefix < backups/$backup_all" >> $restore_db
 else
     echo "psql -p $pgsql_dest_port $prefix < $backup_schema" >> $restore_db
     echo "pg_restore -p $pgsql_dest_port --dbname=$prefix --disable-triggers -j 3 $backup_data" >> $restore_db
-    if [ $oscom -eq 1 ]; then
-        echo "echo \"#######   REMOVING THE TEMPORALLY TABLE CREATED FOR THE COPY OF PRODUCTS...   #######\"" >> $restore_db
-        echo "psql -p $pgsql_dest_port $prefix -c \"drop trigger product_product_fts_full_text_search on product_product;\"" >> $restore_db
-        echo "psql -p $pgsql_dest_port $prefix -c \"insert into product_product select * from $tmpdb;\"" >> $restore_db
-        echo "psql -p $pgsql_dest_port $prefix -c \"drop table if exists $tmpdb;\"" >> $restore_db
-    fi
 fi
 echo "echo \"Disabling imap and smtp servers...\""
-echo "psql -p $psql_dest_port $prefix -c \"update imap_server set state = 'draft';\" >> $restore_db"
-echo "psql -p $psql_dest_port $prefix -c \"update smtp_server set state = 'draft';\" >> $restore_db"
-echo "psql -p $psql_dest_port $prefix -c \"update ir_cron set active = False;\" >> $restore_db"
-
-## change the admin password to admin
-#echo "psql -p $pgsql_dest_port $prefix -c \"update res_users set password = 'admin' where id = 1;\"" >> $restore_db
-## dissable all the cron tasks
-#echo "psql -p $pgsql_dest_port $prefix -c \"update ir_cron set active = false;\"" >> $restore_db
-## dissable if exist all the poweremail accounts
-#echo "psql -p $pgsql_dest_port $prefix -c \"update poweremail_core_accounts set state = 'suspended';\"" >> $restore_db
-## dissable if exist all the email_server accounts
-#echo "psql -p $pgsql_dest_port $prefix -c \"update email_server set state = 'draft';\"" >> $restore_db
-#echo "psql -p $pgsql_dest_port $prefix -c \"update email_smtpclient set state = 'new';\"" >> $restore_db
-## dissable if exist all the documentation paths
-#echo "psql -p $pgsql_dest_port $prefix -c \"update document_storage set path='';\"" >> $restore_db
+echo "psql -p $psql_dest_port $prefix -c \"update imap_server set state = 'draft';\"" >> $restore_db
+echo "psql -p $psql_dest_port $prefix -c \"update smtp_server set state = 'draft';\"" >> $restore_db
+echo "psql -p $psql_dest_port $prefix -c \"update ir_cron set active = False;\"" >> $restore_db
 
 echo "echo \"#######   END   #######\"" >> $restore_db
 echo "exit 0" >> $restore_db
