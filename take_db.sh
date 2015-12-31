@@ -174,9 +174,9 @@ else
     echo "pg_restore -p $pgsql_dest_port --dbname=$prefix --disable-triggers -j 3 $backup_data" >> $restore_db
 fi
 echo "echo \"Disabling imap and smtp servers...\""
-echo "psql -p $psql_dest_port $prefix -c \"update imap_server set state = 'draft';\"" >> $restore_db
-echo "psql -p $psql_dest_port $prefix -c \"update smtp_server set state = 'draft';\"" >> $restore_db
-echo "psql -p $psql_dest_port $prefix -c \"update ir_cron set active = False;\"" >> $restore_db
+echo "psql -p $pgsql_dest_port $prefix -c \"update imap_server set state = 'draft';\"" >> $restore_db
+echo "psql -p $pgsql_dest_port $prefix -c \"update smtp_server set state = 'draft';\"" >> $restore_db
+echo "psql -p $pgsql_dest_port $prefix -c \"update ir_cron set active = False;\"" >> $restore_db
 
 echo "echo \"#######   END   #######\"" >> $restore_db
 echo "exit 0" >> $restore_db
