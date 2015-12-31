@@ -115,14 +115,14 @@ if [ $full_backup -eq 1 ]; then
     else
         ssh $host_from "pg_dump $pgsql_orig_user -p $pgsql_orig_port --no-owner --file=backups/$backup_all $db"
         echo "#######   COMPRESSING THE $backup_all DB...   #######"
-        ssh $host_from "/usr/bin/7z a $backup_all_7z backups/$backup_all"
+        ssh $host_from "/usr/bin/7z a backups/$backup_all_7z backups/$backup_all"
     fi
 
     echo "#######   COPYING THE $backup_all_7z FILE FROM $host_from TO $dest_dir DIRECTORY OF $host_to...   #######"
     if [ "$host_from" == "localhost" ]; then
         scp $limit /tmp/$backup_all_7z $dest
     else
-        scp -3 $limit $host_from:./$backup_all_7z $dest
+        scp -3 $limit $host_from:./backups/$backup_all_7z $dest
     fi
 
     echo "#######   ALL IS DONE   #######"
