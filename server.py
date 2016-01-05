@@ -694,10 +694,11 @@ if settings.action == 'ps':
 if settings.action == 'db':
     db()
 
-if settings.action == 'top':
-    top(settings.pidfile)
-
 config = load_config(settings.config, settings)
+
+if settings.action == 'top':
+    for pidfile in settings.pidfiles:
+        top(pidfile)
 
 if settings.action in ('start', 'restart', 'krestart'):
     if os.path.exists('doc/user'):
