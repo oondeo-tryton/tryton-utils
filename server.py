@@ -301,7 +301,7 @@ def parse_arguments(arguments, root, extra=True):
     else:
         settings.config = os.path.join(root, 'server-%s.cfg' % fqdn)
         if not os.path.exists(settings.config):
-            settings.config = os.path.join(root, 'trytond.conf')
+            settings.config = os.environ.get('TRYTOND_CONFIG')
 
     settings.tail = not option.no_tail
 
