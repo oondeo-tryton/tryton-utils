@@ -403,8 +403,8 @@ def load_config(filename, settings):
     if values.get('optional.pidfile'):
         settings.pidfiles = [values.get('optional.pidfile')]
 
-    if values.get('optional.jasperpid'):
-        settings.pidfile_jasper = values.get('optional.jasperpid')
+    if values.get('jasper.pid'):
+        settings.pidfile_jasper = values.get('jasper.pid')
 
     if (values.get('optional.workers', 'False') != 'False' and
         values.get('optional.nginx_tmpl', 'False') != 'False'):
@@ -600,7 +600,7 @@ def start_nginx(config_nginx):
 
 def stop(pidfiles, warning=True):
     """
-    Stops Tryton's application server/s.
+    Stops Tryton's application server/s and JasperServer.
 
     If warning=True it will show a message to the user when pid file does
     not exist.
