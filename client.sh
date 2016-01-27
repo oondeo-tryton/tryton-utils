@@ -22,6 +22,15 @@ pushd `dirname $0` > /dev/null
 DIR=`pwd`
 popd > /dev/null
 
+rm -rf ~/.config/tryton/3.4/*@*
+rm -rf ~/.config/tryton/3.4/known_hosts
+rm -rf ~/.config/tryton/3.8/*@*
+rm -rf ~/.config/tryton/3.8/known_hosts
+rm -rf ~/.config/tryton/3.9/*@*
+rm -rf ~/.config/tryton/3.9/known_hosts
+rm -rf ~/.config/tryton/4.0/*@*
+rm -rf ~/.config/tryton/4.0/known_hosts
+
 DIR="$DIR/tryton"
 echo "DIR: $DIR"
 if [ ! -d "$DIR" ]; then
