@@ -38,5 +38,8 @@ ln -s utils/docker-compose.yml ..
 echo "Vagrantfile"
 ln -s utils/Vagrantfile ..
 
+echo ".env"
+ln -s utils/.env ..
+
 echo "modules"
 ln -s trytond/trytond/modules/ ..
