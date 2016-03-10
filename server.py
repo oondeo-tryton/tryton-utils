@@ -38,7 +38,7 @@ except ImportError:
 # krestart is the same as restart but will execute kill after
 # stop() and before the next start()
 ACTIONS = ('start', 'stop', 'restart', 'status', 'kill', 'krestart', 'config',
-    'ps', 'db', 'top')
+    'ps', 'db', 'top', 'backtrace')
 
 # Start Printing Tables
 # http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
@@ -666,6 +666,17 @@ def top(pidfile):
         os.kill(pid, signal.SIGUSR1)
         time.sleep(1)
 
+def backtrace(pidfile):
+    pid = open(pidfile, 'r').read()
+    try:
+        pid = int(pid)
+    except ValueError:
+        print "Invalid pid number: %s" % pid
+        return
+    while True:
+        os.kill(pid, signal.SIGUSR2)
+        time.sleep(1)
+
 root = os.path.dirname(sys.argv[0])
 # If the path contains 'utils', it's probably being executed from the
 # clone of the utils repository in the project which is expected to be in
@@ -699,6 +710,10 @@ config = load_config(settings.config, settings)
 if settings.action == 'top':
     for pidfile in settings.pidfiles:
         top(pidfile)
+
+if settings.action == 'backtrace':
+    for pidfile in settings.pidfiles:
+        backtrace(pidfile)
 
 if settings.action in ('start', 'restart', 'krestart'):
     if os.path.exists('doc/user'):
