@@ -70,7 +70,7 @@ os.environ['DB_NAME'] = ':memory:'
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import DB_NAME, USER, CONTEXT
 from trytond.transaction import Transaction
-from trytond.model import ModelView
+from trytond.model import ModelView, ModelSQL
 from trytond.pool import Pool
 
 
@@ -294,8 +294,9 @@ def create_xml(filename, module_name, model_names):
             output += generate_tree_view(module_name, model.model,
                 model.name, None, None, fields)
             output += generate_action(model.model, model.name)
-            output += generate_access(module_name, model.model)
-            menus_output += generate_menus(module_name, model)
+            if issubclass(Class, ModelSQL):
+                output += generate_access(module_name, model.model)
+                menus_output += generate_menus(module_name, model)
             if 'company' in fields:
                 company_models.append(model.model)
         fields = Fields.search([
