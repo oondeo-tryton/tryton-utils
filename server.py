@@ -26,6 +26,9 @@ import sys
 import time
 import locale
 import signal
+import glob
+import datetime
+import shutil
 from urlparse import urlparse
 import re
 try:
@@ -82,6 +85,20 @@ def transpose(data):
     if not data:
         return data
     return [[row[i] for row in data] for i in xrange(len(data[0]))]
+
+def backup_and_remove(filename):
+    # Remove old backups
+    # The last 3 files are kept so we'll have the new one (.log$), the new old
+    # and the other 3 that already existed
+    to_remove = sorted(glob.glob('%s.*' % filename))
+    to_remove = to_remove[:-3]
+    for f in to_remove:
+        os.remove(f)
+    timestamp = datetime.datetime.today().strftime('%Y-%m-%d_%H:%M:%S')
+    destfile = '%s.%s' % (filename, timestamp)
+    if os.path.exists(filename):
+        shutil.move(filename, destfile)
+    return destfile
 
 def check_output(*args):
     process = subprocess.Popen(args, stdout=subprocess.PIPE,
@@ -734,6 +751,7 @@ if settings.action in ('kill', 'krestart'):
     kill()
 
 if settings.action in ('start', 'restart', 'krestart'):
+    backup_and_remove(settings.logfile)
     start(settings)
 
     if settings.tail:
