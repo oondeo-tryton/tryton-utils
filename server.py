@@ -120,10 +120,10 @@ def processes(filter=None):
     """
     # Put the import in the function so the package is not required.
     import psutil
-    import getpass
+    #import getpass
 
     # TODO: Filter by user
-    me = getpass.getuser()
+    #me = getpass.getuser()
     processes = []
     for process in psutil.process_iter():
         try:
