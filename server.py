@@ -41,7 +41,7 @@ except ImportError:
 # krestart is the same as restart but will execute kill after
 # stop() and before the next start()
 ACTIONS = ('start', 'stop', 'restart', 'status', 'kill', 'krestart', 'config',
-    'ps', 'db', 'top', 'backtrace')
+    'ps', 'db', 'top', 'backtrace', 'console')
 
 # Start Printing Tables
 # http://ginstrom.com/scribbles/2007/09/04/pretty-printing-a-table-in-python/
@@ -201,6 +201,37 @@ def ps():
             ' '.join(process.cmdline)
            )
 
+def console(settings):
+    from IPython.terminal.embed import InteractiveShellEmbed
+    if not settings.database:
+        print 'No database specified.'
+        sys.exit(1)
+
+    uri = 'postgresql:///%s' % settings.database
+
+    def models(filters):
+        search = filters.replace(' ', '%')
+        M = Model.get('ir.model')
+        models = M.find(['model', 'ilike', '%' + search + '%'])
+        for model in models:
+            print '%s  --  %s' % (model.model, model.name)
+
+    print "Launching tryton>proteus console on %s..." % uri
+    banner = ('Proteus Help:\n'
+    	"Classes\t\t-> Model, Wizard & Report\n"
+    	"Push button\t-> record.click('confirm')\n"
+     	"Show models\t-> %models stock shipment\n")
+
+    ipshell = InteractiveShellEmbed(banner2=banner)
+    ipshell.register_magic_function(models)
+
+    # Imports and config setup to be used in Interactive Shell
+    from proteus import config, Model, Wizard, Report
+    config.set_trytond(uri)
+
+    ipshell()
+
+
 def db():
     import psycopg2
     import psycopg2.extras
@@ -284,7 +315,7 @@ class Settings(dict):
 
 def parse_arguments(arguments, root, extra=True):
     parser = optparse.OptionParser(usage='server.py [options] start|stop|'
-        'restart|status|kill|krestart|config|ps|db|top '
+        'restart|status|kill|krestart|config|ps|db|top|console '
         '[database [-- parameters]]')
     parser.add_option('', '--config', dest='config',
         help='(it will search: server-config_name.cfg')
@@ -729,6 +760,10 @@ config = load_config(settings.config, settings)
 if settings.action == 'top':
     for pidfile in settings.pidfiles:
         top(pidfile)
+
+if settings.action == 'console':
+    console(settings)
+    sys.exit(0)
 
 if settings.action == 'backtrace':
     for pidfile in settings.pidfiles:
