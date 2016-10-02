@@ -439,7 +439,8 @@ def load_config(filename, settings):
         newparser = ConfigParser.ConfigParser()
         newparser.read(settings.logconf)
         args = newparser.get('handler_trfhand', 'args')
-        settings.logfile = re.match("\('([0-9a-zA-z/.]+)',.*$", args).group(1)
+        settings.logfile = re.match(
+            "\('([0-9a-zA-z/.\-_]+)',.*$", args).group(1)
     else:
         settings.logconf = False
 
