@@ -218,9 +218,9 @@ def console(settings):
 
     print "Launching tryton>proteus console on %s..." % uri
     banner = ('Proteus Help:\n'
-    	"Classes\t\t-> Model, Wizard & Report\n"
-    	"Push button\t-> record.click('confirm')\n"
-     	"Show models\t-> %models stock shipment\n")
+        "Classes\t\t-> Model, Wizard & Report\n"
+        "Push button\t-> record.click('confirm')\n"
+         "Show models\t-> %models stock shipment\n")
 
     ipshell = InteractiveShellEmbed(banner2=banner)
     ipshell.register_magic_function(models)
@@ -695,7 +695,7 @@ def tail(filename, settings):
                 file.seek(where)
             else:
                 print line,
-	    if (settings.extra_arguments and ('-u' in settings.extra_arguments
+        if (settings.extra_arguments and ('-u' in settings.extra_arguments
                    or '--all' in settings.extra_arguments)
                 and 'Update/Init succeed!' in line):
                 return False
