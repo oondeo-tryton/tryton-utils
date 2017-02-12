@@ -350,7 +350,8 @@ def parse_arguments(arguments, root, extra=True):
     elif option.config_file:
         settings.config = os.path.join(root, option.config_file)
     else:
-        instance = os.path.basename(os.path.realpath(os.getcwd()))
+        instance = os.path.basename(os.path.realpath(os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), '..')))
         paths = (
             '/etc/trytond/%s.conf' % instance,
             os.path.join(root, 'server-%s.cfg' % fqdn),
