@@ -350,16 +350,21 @@ def parse_arguments(arguments, root, extra=True):
     elif option.config_file:
         settings.config = os.path.join(root, option.config_file)
     else:
-        settings.config = os.path.join(root, 'server-%s.cfg' % fqdn)
-        if not os.path.exists(settings.config):
-            settings.config = os.path.join(root, 'trytond.conf')
-            if not os.path.exists(settings.config):
-                settings.config = os.environ.get('TRYTOND_CONFIG')
+        instance = os.path.basename(os.path.realpath(os.getcwd()))
+        paths = (
+            '/etc/trytond/%s.cfg' % instance,
+            os.path.join(root, 'server-%s.cfg' % fqdn),
+            os.path.join(root, 'trytond.conf'),
+            os.environ.get('TRYTOND_CONFIG'),
+            )
+        for settings.config in paths:
+            print 'Checking %s...' % settings.config
+            if os.path.exists(settings.config):
+                break
 
     settings.tail = not option.no_tail
 
-    if settings.verbose:
-        print "Configuration file: %s" % settings.config
+    print "Configuration file: %s" % settings.config
 
     if not arguments:
         print 'One action is required.'
