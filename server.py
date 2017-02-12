@@ -227,6 +227,9 @@ def console(settings):
 
     # Imports and config setup to be used in Interactive Shell
     from proteus import config, Model, Wizard, Report
+    # Just use Wizard and Report to avoid pyflakes warnings
+    Wizard
+    Report
     config.set_trytond(uri)
 
     ipshell()
