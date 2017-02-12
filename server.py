@@ -352,7 +352,7 @@ def parse_arguments(arguments, root, extra=True):
     else:
         instance = os.path.basename(os.path.realpath(os.getcwd()))
         paths = (
-            '/etc/trytond/%s.cfg' % instance,
+            '/etc/trytond/%s.conf' % instance,
             os.path.join(root, 'server-%s.cfg' % fqdn),
             os.path.join(root, 'trytond.conf'),
             os.environ.get('TRYTOND_CONFIG'),
