@@ -359,13 +359,15 @@ def parse_arguments(arguments, root, extra=True):
             os.environ.get('TRYTOND_CONFIG'),
             )
         for settings.config in paths:
-            print 'Checking %s...' % settings.config
+            if settings.verbose:
+                print 'Checking %s...' % settings.config
             if os.path.exists(settings.config):
                 break
 
     settings.tail = not option.no_tail
 
-    print "Configuration file: %s" % settings.config
+    if settings.verbose:
+        print "Configuration file: %s" % settings.config
 
     if not arguments:
         print 'One action is required.'
