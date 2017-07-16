@@ -20,6 +20,9 @@
 echo "server.py"
 ln -s utils/server.py ..
 
+echo "wsgi.py"
+ln -s utils/wsgi.py ..
+
 echo "client.sh"
 ln -s utils/client.sh ..
 
