@@ -29,7 +29,7 @@ class Application(object):
             if environ.get('trytond.config'):
                 config.update_etc(environ.get('trytond.config'))
             else:
-                config.update_etc(os.enviorn.get('TRYTOND_CONFIG'))
+                config.update_etc(os.environ.get('TRYTOND_CONFIG'))
 
             self.loaded = True
         return app.wsgi_app(environ, start_response)
