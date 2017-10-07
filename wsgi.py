@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 DIR = os.path.abspath(os.path.normpath(os.path.join(__file__,
     '..', 'trytond', 'trytond')))
@@ -27,9 +28,16 @@ class Application(object):
     def __call__(self, environ, start_response):
         if not self.loaded:
             if environ.get('trytond.config'):
-                config.update_etc(environ.get('trytond.config'))
+                conf = environ.get('trytond.config')
+                logconf = environ.get('trytond.logconf')
             else:
-                config.update_etc(os.environ.get('TRYTOND_CONFIG'))
+                conf = os.environ.get('TRYTOND_CONFIG')
+                logconf = os.environ.get('TRYTOND_LOGCONF')
+            config.update_etc(conf)
+            if logconf:
+                logging.config.fileConfig(logconf)
+                logging.getLogger('server').info('using %s as logging '
+                    'configuration file', logconf)
 
             self.loaded = True
         return app.wsgi_app(environ, start_response)
