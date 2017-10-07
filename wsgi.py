@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import logging.config
 
 DIR = os.path.abspath(os.path.normpath(os.path.join(__file__,
     '..', 'trytond', 'trytond')))
