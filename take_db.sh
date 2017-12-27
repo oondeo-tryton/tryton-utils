@@ -177,6 +177,7 @@ echo "echo \"Disabling imap and smtp servers...\""
 echo "psql -p $pgsql_dest_port $prefix -c \"update imap_server set state = 'draft';\"" >> $restore_db
 echo "psql -p $pgsql_dest_port $prefix -c \"update smtp_server set state = 'draft';\"" >> $restore_db
 echo "psql -p $pgsql_dest_port $prefix -c \"update ir_cron set active = False;\"" >> $restore_db
+echo "psql -p $pgsql_dest_port $prefix -c \"update ir_trigger set active = False;\"" >> $restore_db
 
 echo "echo \"#######   END   #######\"" >> $restore_db
 echo "exit 0" >> $restore_db
